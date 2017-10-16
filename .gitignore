@@ -1,5 +1,7 @@
 data/
 .DS_Store
+MemN2N/task1_model/
+MemN2N/task_1_summary_output_20171011-131430/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -99,3 +101,4 @@ ENV/
 
 # mkdocs documentation
 /site
+
