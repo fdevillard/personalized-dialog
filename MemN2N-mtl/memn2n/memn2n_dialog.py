@@ -44,6 +44,7 @@ class MemN2NDialog(object):
 
     MODEL_NAME_SHARED = 'shared'
     MODEL_NAME_SPECIFIC = 'profilespecific'
+    MODEL_NAME_SPECIFIC_VARIABLES = 'profilespecificvars'
 
     def __init__(self,
                  batch_size,
@@ -52,6 +53,7 @@ class MemN2NDialog(object):
                  sentence_size,
                  embedding_size,
                  candidates_vec,
+                 profiles_idx_set,
                  hops=3,
                  max_grad_norm=40.0,
                  nonlin=None,
@@ -80,6 +82,8 @@ class MemN2NDialog(object):
             embedding_size: The size of the word embedding.
 
             candidates_vec: The numpy array of candidates encoding.
+
+            profiles_idx_set: Set of all possible profile IDs
 
             hops: The number of hops. A hop consists of reading and addressing a memory slot.
             Defaults to `3`.
@@ -111,6 +115,8 @@ class MemN2NDialog(object):
         self._opt = optimizer
         self._name = name
         self._candidates=candidates_vec
+        self._profile_idx_set = profiles_idx_set
+        self._current_profile = None
 
         self._build_inputs()
         self._build_vars()
@@ -166,14 +172,24 @@ class MemN2NDialog(object):
         self._queries = tf.placeholder(tf.int32, [None, self._sentence_size], name="queries")
         self._answers = tf.placeholder(tf.int32, [None], name="answers")
 
+    def _variable_name_generator(self, variable_name, suffix=None):
+        """Simple helper function that appends suffix to variable_name if needed"""
+        if suffix:
+            return '{}_{}'.format(variable_name, suffix)
+        else:
+            return variable_name
+
     def _build_vars(self):
-        def build_var_helper():
+        def build_var_helper(variable_suffix=None):
+            # Simple lambda to construct variable name
+            var_name_gen = lambda name: self._variable_name_generator(name, variable_suffix)
+
             nil_word_slot = tf.zeros([1, self._embedding_size])
             A = tf.concat(0, [ nil_word_slot, self._init([self._vocab_size-1, self._embedding_size]) ])
-            A = tf.Variable(A, name="A")
-            H = tf.Variable(self._init([self._embedding_size, self._embedding_size]), name="H")
+            A = tf.Variable(A, name=var_name_gen('A'))
+            H = tf.Variable(self._init([self._embedding_size, self._embedding_size]), name=var_name_gen("H"))
             W = tf.concat(0, [ nil_word_slot, self._init([self._vocab_size-1, self._embedding_size]) ])
-            W = tf.Variable(W, name="W")
+            W = tf.Variable(W, name=var_name_gen("W"))
 
             return A, H, W
 
@@ -188,7 +204,59 @@ class MemN2NDialog(object):
                 A, _, W = build_var_helper()
                 nil_vars = nil_vars | {A.name, W.name}
 
+        # Create isolated variable per profile
+        with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES):
+            for p in self._profile_idx_set:
+                A, _, W = build_var_helper(p)
+                nil_vars = nil_vars | {A.name, W.name}
+
         self._nil_vars = nil_vars
+
+    def _change_profile(self, new_profile):
+        """
+        Change the profile-specific variables' values.
+
+        The model almost the same between all profiles, the choice here
+        is to update variables' values when we switch of profiles.
+
+        Does nothing if the profile is the same as self._current_profile
+
+        Args:
+            new_profile: the new profile ID (has to be in self._profile_idx_set)
+        """
+        if new_profile == self._current_profile:
+            return
+
+        assert new_profile in self._profile_idx_set, "Invalid profile specified"
+
+        variables_names = ["A", "H", "W"]
+        def get_variable_for_profile(p):
+            accessor = lambda var_name: tf.get_variable(self._variable_name_generator(var_name, p))
+            variable_iter = map(accessor, variables_names)
+            return list(variable_iter)
+
+        # Obtain profile specific vars
+        with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES):
+            if self._current_profile:
+                previous_vars = get_variable_for_profile(self._current_profile)
+            else:
+                previous_vars = None
+
+            new_vars = get_variable_for_profile(new_profile)
+
+        # Obtain current model vars
+        with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC):
+            model_vars = get_variable_for_profile(None)
+
+        # Update vars
+        def assign_variable_values(modified_var, new_value_var):
+            modified_var.assign(new_value_var)
+
+        if previous_vars:
+            map(assign_variable_values, zip(previous_vars, model_vars))
+
+        map(assign_variable_values, zip(model_vars, new_vars))
+
 
     def _inference(self, stories, queries):
         def model_inference_helper():
