@@ -166,7 +166,7 @@ def vectorize_candidates(candidates,word_idx,sentence_size):
     return tf.constant(C,shape=shape)
 
 
-def vectorize_data(data, word_idx, sentence_size, batch_size, candidates_size, max_memory_size):
+def vectorize_data(data, word_idx, sentence_size, batch_size, candidates_size, max_memory_size, profile_mapping):
     """
     Vectorize stories and queries.
 
@@ -187,7 +187,7 @@ def vectorize_data(data, word_idx, sentence_size, batch_size, candidates_size, m
         if i%batch_size==0:
             memory_size=max(1,min(max_memory_size,len(story)))
 
-        profile_attributes = tuple(story[0][:2])
+        profile_attributes = profile_mapping[tuple(story[0][:2])]
 
         ss = []
         for i, sentence in enumerate(story, 1):
@@ -217,14 +217,13 @@ def generate_profile_encoding(data):
     """
     Read the entire dataset to find all possible profiles and encode them
 
-    Parameters:
-    -----------
-        - data: raw data, as the same form of `data` of vectorize_data
+    Args:
+        data: raw data, as the same form of `data` of vectorize_data
 
-    Return type:
-    ------------
-    Returns a map of the form `Map[(String, String), Int]` where
-    `(String, String)` is of the form of a profile (ex. `("female", "young")`)
+    Returns:
+        map: Returns a map of the form `Map[(String, String), Int]` where
+             `(String, String)` is of the form of a profile (ex. `("female", "young")`).
+             The ID (thus the Int) is unique amongst the map.
 
     """
 
@@ -233,3 +232,25 @@ def generate_profile_encoding(data):
     profiles_mapping = {p: idx for (idx, p) in enumerate(profiles_sorted)}
     return profiles_mapping
 
+
+class IdenticalWordIdx:
+    """
+    Simple testing WordIdx that simply returns the key as value
+
+    This class mimic a dictionary used for word to index conversion,
+    but does not do the conversion. It simply returns the word directly.
+
+    It is useful in order to test the different functions.
+
+    Attributes:
+        word_idx (set|dict): Used to test if the word in known or not, but the word
+                             itself will be returned by `__getitem__`.
+    """
+    def __init__(self, word_idx):
+        self.word_idx = word_idx
+
+    def __contains__(self, item):
+        return item in self.word_idx
+
+    def __getitem__(self, item):
+        return item

@@ -3,7 +3,7 @@ from __future__ import print_function
 
 from data_utils import (
     load_dialog_task, vectorize_data, load_candidates, vectorize_candidates, tokenize,
-    generate_profile_encoding
+    generate_profile_encoding, IdenticalWordIdx
 )
 from sklearn import metrics
 from memn2n import MemN2NDialog
@@ -157,7 +157,7 @@ class ChatBot(object):
             nid+=1
 
     def train(self):
-        trainS, trainQ, trainA = vectorize_data(self.trainData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size)
+        trainP, trainS, trainQ, trainA = vectorize_data(self.trainData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size, self._profiles_mapping)
         valS, valQ, valA = vectorize_data(self.valData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size)
         n_train = len(trainS)
         n_val = len(valS)
@@ -215,7 +215,7 @@ class ChatBot(object):
         if self.isInteractive:
             self.interactive()
         else:
-            testS, testQ, testA = vectorize_data(self.testData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size)
+            testP, testS, testQ, testA = vectorize_data(self.testData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size, self._profiles_mapping)
             n_test = len(testS)
             print("Testing Size", n_test)
             test_preds=self.batch_predict(testS,testQ,n_test)
@@ -261,25 +261,15 @@ if __name__ =='__main__':
         import pprint
         pp = pprint.PrettyPrinter(indent=4)
 
-        class IdenticalWordIdx:
-            "Simple testing WordIdx that simply returns the key as value"
-            def __init__(self, word_idx):
-                self.word_idx = word_idx
-
-            def __contains__(self, item):
-                return item in self.word_idx
-
-            def __getitem__(self, item):
-                return item
 
         self = chatbot
         trainP, trainS, trainQ, trainA = vectorize_data(self.trainData, IdenticalWordIdx(self.word_idx), self.sentence_size, self.batch_size,
-                                                        self.n_cand, self.memory_size)
+                                                        self.n_cand, self.memory_size, self._profiles_mapping)
 
         train = [trainP, trainS, trainQ, trainA]
 
         testP, testS, testQ, testA = vectorize_data(self.testData, IdenticalWordIdx(self.word_idx), self.sentence_size, self.batch_size,
-                                                    self.n_cand, self.memory_size)
+                                                    self.n_cand, self.memory_size, self._profiles_mapping)
 
         test = [testP, testS, testQ, testA]
 

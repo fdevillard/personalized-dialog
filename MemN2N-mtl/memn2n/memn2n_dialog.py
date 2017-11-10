@@ -38,6 +38,7 @@ def add_gradient_noise(t, stddev=1e-3, name=None):
         gn = tf.random_normal(tf.shape(t), stddev=stddev)
         return tf.add(t, gn, name=name)
 
+
 class MemN2NDialog(object):
     """End-To-End Memory Network."""
     def __init__(self,
