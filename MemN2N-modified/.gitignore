@@ -1,5 +1,6 @@
 runs/
 runs.tar.gz
+task_?_summary_output_*/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -99,3 +100,4 @@ ENV/
 
 # mkdocs documentation
 /site
+
