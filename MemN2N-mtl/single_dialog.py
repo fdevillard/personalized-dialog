@@ -73,6 +73,7 @@ class ChatBot(object):
         validation_profiles = generate_profile_encoding(self.valData)
         assert self._profiles_mapping == test_profiles
         assert self._profiles_mapping == validation_profiles
+        profiles_idx_set = set(self._profiles_mapping.values())
 
         # Vocabulary
         self.build_vocab(data,candidates,self.save_vocab,self.load_vocab)
@@ -82,15 +83,23 @@ class ChatBot(object):
         # Model initialisation
         optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=self.epsilon)
         self.sess=tf.Session()
-        self.model = MemN2NDialog(self.batch_size, self.vocab_size, self.n_cand, self.sentence_size, self.embedding_size, self.candidates_vec, session=self.sess,
-                           hops=self.hops, max_grad_norm=self.max_grad_norm, optimizer=optimizer, task_id=task_id)
+        self.model = MemN2NDialog(self.batch_size,
+                                  self.vocab_size,
+                                  self.n_cand,
+                                  self.sentence_size,
+                                  self.embedding_size,
+                                  self.candidates_vec,
+                                  profiles_idx_set,
+                                  session=self.sess,
+                                  hops=self.hops,
+                                  max_grad_norm=self.max_grad_norm,
+                                  optimizer=optimizer,
+                                  task_id=task_id)
         self.saver = tf.train.Saver(max_to_keep=50)
         
         # self.summary_writer = tf.train.SummaryWriter(self.model.root_dir, self.model.graph_output.graph)
         self.summary_writer = tf.summary.FileWriter(self.model.root_dir, self.model.graph_output.graph)
         
-
-
     def build_vocab(self,data,candidates,save=False,load=False):
         if load:
             vocab_file = open('vocab.obj', 'rb')
@@ -121,44 +130,9 @@ class ChatBot(object):
             with open('vocab.obj', 'wb') as vocab_file:
                 pickle.dump(vocab, vocab_file)
         
-
-
-    def interactive(self):
-        context=[['male', 'young', '$r', '#0']]
-        # context = []
-
-        u=None
-        r=None
-        nid=1
-        while True:
-            line=input('--> ').strip().lower()
-            if line=='exit':
-                break
-            if line=='restart':
-                context=[['female', 'young', '$r', '#0']]
-                # context = []
-                nid=1
-                print("clear memory")        
-                continue
-            
-            u=tokenize(line)
-            data=[(context,u,-1)]
-            s,q,a=vectorize_data(data, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size)
-            preds=self.model.predict(s,q)
-            r=self.indx2candid[preds[0]]
-            print(r)
-            r=tokenize(r)
-            u.append('$u')
-            u.append('#'+str(nid))
-            r.append('$r')
-            r.append('#'+str(nid))
-            context.append(u)
-            context.append(r)
-            nid+=1
-
     def train(self):
         trainP, trainS, trainQ, trainA = vectorize_data(self.trainData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size, self._profiles_mapping)
-        valS, valQ, valA = vectorize_data(self.valData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size)
+        valP, valS, valQ, valA = vectorize_data(self.valData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size)
         n_train = len(trainS)
         n_val = len(valS)
         print("Training Size",n_train)
@@ -174,14 +148,15 @@ class ChatBot(object):
             np.random.shuffle(batches)
             total_cost = 0.0
             for start, end in batches:
+                p = trainP[start:end]
                 s = trainS[start:end]
                 q = trainQ[start:end]
                 a = trainA[start:end]
-                cost_t = self.model.batch_fit(s, q, a)
+                cost_t = self.model.batch_fit(p, s, q, a)
                 total_cost += cost_t
             if t % self.evaluation_interval == 0 or t == self.epochs:
-                train_preds=self.batch_predict(trainS,trainQ,n_train)
-                val_preds=self.batch_predict(valS,valQ,n_val)
+                train_preds=self.batch_predict(trainP, trainS, trainQ, n_train)
+                val_preds=self.batch_predict(valP, valS,valQ,n_val)
                 train_acc = metrics.accuracy_score(np.array(train_preds), trainA)
                 val_acc = metrics.accuracy_score(val_preds, valA)
                 print('-----------------------')
@@ -218,7 +193,7 @@ class ChatBot(object):
             testP, testS, testQ, testA = vectorize_data(self.testData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size, self._profiles_mapping)
             n_test = len(testS)
             print("Testing Size", n_test)
-            test_preds=self.batch_predict(testS,testQ,n_test)
+            test_preds=self.batch_predict(testP, testS,testQ,n_test)
             test_acc = metrics.accuracy_score(test_preds, testA)
             print("Testing Accuracy:", test_acc)
             
@@ -226,14 +201,16 @@ class ChatBot(object):
             # for pred in test_preds:
             #     print(pred, self.indx2candid[pred])
 
-    def batch_predict(self,S,Q,n):
+    def batch_predict(self,P,S,Q,n):
         preds=[]
         for start in range(0, n, self.batch_size):
             end = start + self.batch_size
+            p = P[start:end]
             s = S[start:end]
             q = Q[start:end]
-            pred = self.model.predict(s, q)
+            pred = self.model.predict(p, s, q)
             preds += list(pred)
+
         return preds
 
     def close_session(self):

@@ -236,7 +236,7 @@ class MemN2NDialog(object):
             return list(variable_iter)
 
         # Obtain profile specific vars
-        with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES):
+        with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES, reuse=True):
             if self._current_profile:
                 previous_vars = get_variable_for_profile(self._current_profile)
             else:
@@ -245,7 +245,7 @@ class MemN2NDialog(object):
             new_vars = get_variable_for_profile(new_profile)
 
         # Obtain current model vars
-        with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC):
+        with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC, reuse=True):
             model_vars = get_variable_for_profile(None)
 
         # Update vars
@@ -298,19 +298,20 @@ class MemN2NDialog(object):
 
             return tf.matmul(u_k,tf.transpose(candidates_emb_sum))
 
-        with tf.variable_scope(self._name):
-            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC):
+        with tf.variable_scope(self._name, reuse=True):
+            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC, reuse=True):
                 spec_result = model_inference_helper()
 
-            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SHARED):
+            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SHARED, reuse=True):
                 shared_result = model_inference_helper()
 
             return tf.add(spec_result, shared_result)
 
-    def batch_fit(self, stories, queries, answers):
-        """Runs the training algorithm over the passed batch
+    def batch_fit(self, profiles, stories, queries, answers):
+        """Runs the training algorithm over the given batch
 
         Args:
+            profiles: Profile numbers (array-like with values in profiles_idx_set)
             stories: Tensor (None, memory_size, sentence_size)
             queries: Tensor (None, sentence_size)
             answers: Tensor (None, vocab_size)
@@ -318,19 +319,100 @@ class MemN2NDialog(object):
         Returns:
             loss: floating-point number, the loss computed for the batch
         """
+        results = self._dispatch_arguments_for_profiles(self._batch_fit_single_profile,
+                                                        profiles,
+                                                        stories,
+                                                        queries,
+                                                        answers)
+
+        return np.mean(results)
+
+
+    def _dispatch_arguments_for_profiles(self, f, profiles, *args):
+        """
+        Helper function that dispatch `f` over same profiles.
+
+        Roughly, this function does the following:
+            - Take all indices that share the same profile
+            - Call `f` once per profile, and with arguments being the list
+              of each list in args that correspond to entry having same profile
+
+        Args:
+            f: function to dispatch. Must take as first argument the profile type, and then
+               as many arguments as present in `args` (in the same order)
+            profiles: array-like that contains profiles for elements in the batch
+            args: values to dispatch (must be of same shape then `profiles`, and have at least one element)
+
+        Returns:
+        The list of results (corresponding to each profiles)
+        """
+        assert len(args)>0, "Must specify at least one argument for f"
+
+        unique_profiles = set(profiles)
+        if len(unique_profiles) < 2:
+            print("Calling _dispatch_arguments_for_profiles with less than two different profiles")
+
+        results = []
+        for p in unique_profiles:
+            indices_for_profile = {i for i in range(len(profiles)) if profiles[i] == p}
+            sublist_for_profile_gen = lambda lst: [e for (i,e) in enumerate(lst) if i in indices_for_profile]
+
+            profile_specific_args = list(map(sublist_for_profile_gen, args))
+
+            results.append(f(p, *profile_specific_args))
+
+        return results
+
+    def _batch_fit_single_profile(self, profile, stories, queries, answers):
+        """Runs the training algorithm over the given batch
+
+        Args:
+            profile: Number in profiles_idx_set, change the model for this profile
+                     The stories/queries/answers must be relative to this profile
+            stories: Tensor (None, memory_size, sentence_size)
+            queries: Tensor (None, sentence_size)
+            answers: Tensor (None, vocab_size)
+
+        Returns:
+            loss: floating-point number, the loss computed for the batch
+        """
+        self._change_profile(profile)
+
         feed_dict = {self._stories: stories, self._queries: queries, self._answers: answers}
         loss, _ = self._sess.run([self.loss_op, self.train_op], feed_dict=feed_dict)
         return loss
 
-    def predict(self, stories, queries):
+    def predict(self, profiles, stories, queries):
         """Predicts answers as one-hot encoding.
 
         Args:
+            profiles: Profile numbers (array-like with values in profiles_idx_set)
             stories: Tensor (None, memory_size, sentence_size)
             queries: Tensor (None, sentence_size)
 
         Returns:
             answers: Tensor (None, vocab_size)
         """
+        results = self._dispatch_arguments_for_profiles(self._predict_single_profile,
+                                                        profiles,
+                                                        stories,
+                                                        queries)
+
+        return np.mean(results)
+
+    def _predict_single_profile(self, profile, stories, queries):
+        """Predicts answers as one-hot encoding.
+
+        Args:
+            profile: Number in profiles_idx_set, change the model for this profile
+                     The stories/queries must be relative to this profile
+            stories: Tensor (None, memory_size, sentence_size)
+            queries: Tensor (None, sentence_size)
+
+        Returns:
+            answers: Tensor (None, vocab_size)
+        """
+        self._change_profile(profile)
+
         feed_dict = {self._stories: stories, self._queries: queries}
         return self._sess.run(self.predict_op, feed_dict=feed_dict)
