@@ -41,6 +41,10 @@ def add_gradient_noise(t, stddev=1e-3, name=None):
 
 class MemN2NDialog(object):
     """End-To-End Memory Network."""
+
+    MODEL_NAME_SHARED = 'shared'
+    MODEL_NAME_SPECIFIC = 'profilespecific'
+
     def __init__(self,
                  batch_size,
                  vocab_size,
@@ -163,23 +167,42 @@ class MemN2NDialog(object):
         self._answers = tf.placeholder(tf.int32, [None], name="answers")
 
     def _build_vars(self):
-        with tf.variable_scope(self._name):
+        def build_var_helper():
             nil_word_slot = tf.zeros([1, self._embedding_size])
             A = tf.concat(0, [ nil_word_slot, self._init([self._vocab_size-1, self._embedding_size]) ])
-            self.A = tf.Variable(A, name="A")
-            self.H = tf.Variable(self._init([self._embedding_size, self._embedding_size]), name="H")
+            A = tf.Variable(A, name="A")
+            H = tf.Variable(self._init([self._embedding_size, self._embedding_size]), name="H")
             W = tf.concat(0, [ nil_word_slot, self._init([self._vocab_size-1, self._embedding_size]) ])
-            self.W = tf.Variable(W, name="W")
-            # self.W = tf.Variable(self._init([self._vocab_size, self._embedding_size]), name="W")
-        self._nil_vars = set([self.A.name,self.W.name])
+            W = tf.Variable(W, name="W")
+
+            return A, H, W
+
+        with tf.variable_scope(self._name):
+            nil_vars = set()
+
+            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SHARED):
+                A, _, W = build_var_helper()
+                nil_vars = nil_vars | {A.name, W.name}
+
+            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC):
+                A, _, W = build_var_helper()
+                nil_vars = nil_vars | {A.name, W.name}
+
+        self._nil_vars = nil_vars
 
     def _inference(self, stories, queries):
-        with tf.variable_scope(self._name):
-            q_emb = tf.nn.embedding_lookup(self.A, queries)
+        def model_inference_helper():
+            A = tf.get_variable("A")
+            H = tf.get_variable("H")
+            W = tf.get_variable("W")
+
+            q_emb = tf.nn.embedding_lookup(A, queries)
             u_0 = tf.reduce_sum(q_emb, 1)
             u = [u_0]
+            u_k = u_0       # Typically if self._hops = 0
+
             for count in range(self._hops):
-                m_emb = tf.nn.embedding_lookup(self.A, stories)
+                m_emb = tf.nn.embedding_lookup(A, stories)
                 m = tf.reduce_sum(m_emb, 2)
                 # hack to get around no reduce_dot
                 u_temp = tf.transpose(tf.expand_dims(u[-1], -1), [0, 2, 1])
@@ -193,20 +216,28 @@ class MemN2NDialog(object):
                 c_temp = tf.transpose(m, [0, 2, 1])
                 o_k = tf.reduce_sum(c_temp * probs_temp, 2)
 
-                u_k = tf.matmul(u[-1], self.H) + o_k
+                u_k = tf.matmul(u[-1], H) + o_k
                 # u_k=u[-1]+tf.matmul(o_k,self.H)
+
                 # nonlinearity
                 if self._nonlin:
                     u_k = self._nonlin(u_k)
 
                 u.append(u_k)
 
-            candidates_emb=tf.nn.embedding_lookup(self.W, self._candidates)
+            candidates_emb=tf.nn.embedding_lookup(W, self._candidates)
             candidates_emb_sum=tf.reduce_sum(candidates_emb,1)
 
             return tf.matmul(u_k,tf.transpose(candidates_emb_sum))
-            # logits=tf.matmul(u_k, self.W)
-            # return tf.transpose(tf.sparse_tensor_dense_matmul(self._candidates,tf.transpose(logits)))
+
+        with tf.variable_scope(self._name):
+            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC):
+                spec_result = model_inference_helper()
+
+            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SHARED):
+                shared_result = model_inference_helper()
+
+            return tf.add(spec_result, shared_result)
 
     def batch_fit(self, stories, queries, answers):
         """Runs the training algorithm over the passed batch
