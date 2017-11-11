@@ -117,6 +117,7 @@ class MemN2NDialog(object):
         self._candidates=candidates_vec
         self._profile_idx_set = profiles_idx_set
         self._current_profile = None
+        self._tf_vars = None    # Will contains all created variables as dict of dicts
 
         self._build_inputs()
         self._build_vars()
@@ -135,7 +136,9 @@ class MemN2NDialog(object):
         loss_op = cross_entropy_sum
 
         # gradient pipeline
-        grads_and_vars = self._opt.compute_gradients(loss_op)
+        var_spaces = [MemN2NDialog.MODEL_NAME_SPECIFIC, MemN2NDialog.MODEL_NAME_SHARED]
+        vars_to_optimize = [v for var_space in var_spaces for v in self._tf_vars[var_space].values()]
+        grads_and_vars = self._opt.compute_gradients(loss_op, var_list=vars_to_optimize)
         grads_and_vars = [(tf.clip_by_norm(g, self._max_grad_norm), v) for g,v in grads_and_vars]
         # grads_and_vars = [(add_gradient_noise(g), v) for g,v in grads_and_vars]
         nil_grads_and_vars = []
@@ -191,26 +194,37 @@ class MemN2NDialog(object):
             W = tf.concat(0, [ nil_word_slot, self._init([self._vocab_size-1, self._embedding_size]) ])
             W = tf.Variable(W, name=var_name_gen("W"))
 
-            return A, H, W
+            return {
+                'A': A,
+                'H': H,
+                'W': W,
+            }
 
+        vars = dict()
         with tf.variable_scope(self._name):
             nil_vars = set()
 
             with tf.variable_scope(MemN2NDialog.MODEL_NAME_SHARED):
-                A, _, W = build_var_helper()
-                nil_vars = nil_vars | {A.name, W.name}
+                created_vars = build_var_helper()
+                nil_vars = nil_vars | {created_vars['A'].name, created_vars['W'].name}
+                vars[MemN2NDialog.MODEL_NAME_SHARED] = created_vars
 
             with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC):
-                A, _, W = build_var_helper()
-                nil_vars = nil_vars | {A.name, W.name}
+                created_vars = build_var_helper()
+                nil_vars = nil_vars | {created_vars['A'].name, created_vars['W'].name}
+                vars[MemN2NDialog.MODEL_NAME_SPECIFIC] = created_vars
 
         # Create isolated variable per profile
         with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES):
-            for p in self._profile_idx_set:
-                A, _, W = build_var_helper(p)
-                nil_vars = nil_vars | {A.name, W.name}
+            profile_spec_vars = {p: build_var_helper(p) for p in self._profile_idx_set}
+            vars[MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES] = profile_spec_vars
+
+            As_list = {p['A'].name for p in profile_spec_vars.values()}
+            Ws_list = {p['W'].name for p in profile_spec_vars.values()}
+            nil_vars = nil_vars | As_list | Ws_list
 
         self._nil_vars = nil_vars
+        self._tf_vars = vars
 
     def _change_profile(self, new_profile):
         """
@@ -231,22 +245,20 @@ class MemN2NDialog(object):
 
         variables_names = ["A", "H", "W"]
         def get_variable_for_profile(p):
-            accessor = lambda var_name: tf.get_variable(self._variable_name_generator(var_name, p))
-            variable_iter = map(accessor, variables_names)
-            return list(variable_iter)
+            if p is None:       # Assumed referring the profile-specific variables
+                vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SPECIFIC]
+            else:
+                vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES][p]
+
+            ordered = list(map(lambda k: vars[k], variables_names))
+            return list(ordered)
 
         # Obtain profile specific vars
-        with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES, reuse=True):
-            if self._current_profile:
-                previous_vars = get_variable_for_profile(self._current_profile)
-            else:
-                previous_vars = None
-
-            new_vars = get_variable_for_profile(new_profile)
+        previous_vars = None if self._current_profile is None else get_variable_for_profile(self._current_profile)
+        new_vars = get_variable_for_profile(new_profile)
 
         # Obtain current model vars
-        with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC, reuse=True):
-            model_vars = get_variable_for_profile(None)
+        model_vars = get_variable_for_profile(None)
 
         # Update vars
         def assign_variable_values(modified_var, new_value_var):
@@ -259,11 +271,7 @@ class MemN2NDialog(object):
 
 
     def _inference(self, stories, queries):
-        def model_inference_helper():
-            A = tf.get_variable("A")
-            H = tf.get_variable("H")
-            W = tf.get_variable("W")
-
+        def model_inference_helper(A, H, W):
             q_emb = tf.nn.embedding_lookup(A, queries)
             u_0 = tf.reduce_sum(q_emb, 1)
             u = [u_0]
@@ -298,34 +306,16 @@ class MemN2NDialog(object):
 
             return tf.matmul(u_k,tf.transpose(candidates_emb_sum))
 
-        with tf.variable_scope(self._name, reuse=True):
-            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC, reuse=True):
-                spec_result = model_inference_helper()
+        with tf.variable_scope(self._name):
+            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC):
+                vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SPECIFIC]
+                spec_result = model_inference_helper(**vars)
 
-            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SHARED, reuse=True):
-                shared_result = model_inference_helper()
+            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SHARED):
+                vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SHARED]
+                shared_result = model_inference_helper(**vars)
 
             return tf.add(spec_result, shared_result)
-
-    def batch_fit(self, profiles, stories, queries, answers):
-        """Runs the training algorithm over the given batch
-
-        Args:
-            profiles: Profile numbers (array-like with values in profiles_idx_set)
-            stories: Tensor (None, memory_size, sentence_size)
-            queries: Tensor (None, sentence_size)
-            answers: Tensor (None, vocab_size)
-
-        Returns:
-            loss: floating-point number, the loss computed for the batch
-        """
-        results = self._dispatch_arguments_for_profiles(self._batch_fit_single_profile,
-                                                        profiles,
-                                                        stories,
-                                                        queries,
-                                                        answers)
-
-        return np.mean(results)
 
 
     def _dispatch_arguments_for_profiles(self, f, profiles, *args):
@@ -363,6 +353,28 @@ class MemN2NDialog(object):
 
         return results
 
+
+    def batch_fit(self, profiles, stories, queries, answers):
+        """Runs the training algorithm over the given batch
+
+        Args:
+            profiles: Profile numbers (array-like with values in profiles_idx_set)
+            stories: Tensor (None, memory_size, sentence_size)
+            queries: Tensor (None, sentence_size)
+            answers: Tensor (None, vocab_size)
+
+        Returns:
+            loss: floating-point number, the loss computed for the batch
+        """
+        results = self._dispatch_arguments_for_profiles(self._batch_fit_single_profile,
+                                                        profiles,
+                                                        stories,
+                                                        queries,
+                                                        answers)
+
+        return np.mean(results)
+
+
     def _batch_fit_single_profile(self, profile, stories, queries, answers):
         """Runs the training algorithm over the given batch
 
@@ -397,6 +409,8 @@ class MemN2NDialog(object):
                                                         profiles,
                                                         stories,
                                                         queries)
+
+        print(results)
 
         return np.mean(results)
 

@@ -75,6 +75,8 @@ class ChatBot(object):
         assert self._profiles_mapping == validation_profiles
         profiles_idx_set = set(self._profiles_mapping.values())
 
+        print("Profiles:", self._profiles_mapping)
+
         # Vocabulary
         self.build_vocab(data,candidates,self.save_vocab,self.load_vocab)
         # self.candidates_vec=vectorize_candidates_sparse(candidates,self.word_idx)
@@ -132,7 +134,7 @@ class ChatBot(object):
         
     def train(self):
         trainP, trainS, trainQ, trainA = vectorize_data(self.trainData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size, self._profiles_mapping)
-        valP, valS, valQ, valA = vectorize_data(self.valData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size)
+        valP, valS, valQ, valA = vectorize_data(self.valData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size, self._profiles_mapping)
         n_train = len(trainS)
         n_val = len(valS)
         print("Training Size",n_train)
