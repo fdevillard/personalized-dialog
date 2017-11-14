@@ -67,8 +67,18 @@ class chatBot(object):
         self.candidates_vec=vectorize_candidates(candidates,self.word_idx,self.candidate_sentence_size)
         optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=self.epsilon)
         self.sess=tf.Session()
-        self.model = MemN2NDialog(self.batch_size, self.vocab_size, self.n_cand, self.sentence_size, self.embedding_size, self.candidates_vec, session=self.sess,
-                           hops=self.hops, max_grad_norm=self.max_grad_norm, optimizer=optimizer, task_id=task_id)
+        self.model = MemN2NDialog(self.batch_size,
+                                  self.vocab_size,
+                                  self.n_cand,
+                                  self.sentence_size,
+                                  self.embedding_size,
+                                  self.candidates_vec,
+                                  session=self.sess,
+                                  hops=self.hops,
+                                  max_grad_norm=self.max_grad_norm,
+                                  optimizer=optimizer,
+                                  task_id=task_id)
+
         self.saver = tf.train.Saver(max_to_keep=50)
         
         # self.summary_writer = tf.train.SummaryWriter(self.model.root_dir, self.model.graph_output.graph)
@@ -162,7 +172,7 @@ class chatBot(object):
                 a = trainA[start:end]
                 cost_t = self.model.batch_fit(p, s, q, a)
                 total_cost += cost_t
-            if t % self.evaluation_interval == 0:
+            if t % self.evaluation_interval == 0 or t == self.epochs:
                 train_preds=self.batch_predict(trainP,trainS,trainQ,n_train)
                 val_preds=self.batch_predict(valP,valS,valQ,n_val)
                 train_acc = metrics.accuracy_score(np.array(train_preds), trainA)

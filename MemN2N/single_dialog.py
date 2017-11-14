@@ -162,7 +162,7 @@ class chatBot(object):
                 a = trainA[start:end]
                 cost_t = self.model.batch_fit(s, q, a)
                 total_cost += cost_t
-            if t % self.evaluation_interval == 0:
+            if t % self.evaluation_interval == 0 or t == self.epochs:
                 train_preds=self.batch_predict(trainS,trainQ,n_train)
                 val_preds=self.batch_predict(valS,valQ,n_val)
                 train_acc = metrics.accuracy_score(np.array(train_preds), trainA)
@@ -226,7 +226,7 @@ if __name__ =='__main__':
     model_dir="task"+str(FLAGS.task_id)+"_"+FLAGS.model_dir
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
-    chatbot=chatBot(FLAGS.data_dir,model_dir,FLAGS.task_id,OOV=FLAGS.OOV,isInteractive=FLAGS.interactive,batch_size=FLAGS.batch_size,memory_size=FLAGS.memory_size,save_vocab=FLAGS.save_vocab,load_vocab=FLAGS.load_vocab)
+    chatbot=chatBot(FLAGS.data_dir,model_dir,FLAGS.task_id,epochs=FLAGS.epochs,OOV=FLAGS.OOV,isInteractive=FLAGS.interactive,batch_size=FLAGS.batch_size,memory_size=FLAGS.memory_size,save_vocab=FLAGS.save_vocab,load_vocab=FLAGS.load_vocab)
     # chatbot.run()
     if FLAGS.train:
         chatbot.train()
