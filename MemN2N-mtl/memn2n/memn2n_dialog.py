@@ -265,9 +265,9 @@ class MemN2NDialog(object):
             modified_var.assign(new_value_var)
 
         if previous_vars:
-            map(assign_variable_values, zip(previous_vars, model_vars))
+            set(map(lambda t: assign_variable_values(*t), zip(previous_vars, model_vars)))
 
-        map(assign_variable_values, zip(model_vars, new_vars))
+        set(map(lambda t: assign_variable_values(*t), zip(model_vars, new_vars)))
 
 
     def _inference(self, stories, queries):
