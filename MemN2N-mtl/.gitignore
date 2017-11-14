@@ -1,6 +1,7 @@
 runs/
 runs.tar.gz
 task_?_summary_output_*/
+tmp/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

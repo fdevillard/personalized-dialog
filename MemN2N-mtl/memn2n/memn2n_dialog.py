@@ -315,7 +315,7 @@ class MemN2NDialog(object):
                 vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SHARED]
                 shared_result = model_inference_helper(**vars)
 
-            return tf.add(spec_result, shared_result)
+            return tf.scalar_mul(0.5, tf.add(spec_result, shared_result))
 
 
     def _dispatch_arguments_for_profiles(self, f, profiles, *args):
@@ -410,9 +410,7 @@ class MemN2NDialog(object):
                                                         stories,
                                                         queries)
 
-        print(results)
-
-        return np.mean(results)
+        return np.concatenate(results)
 
     def _predict_single_profile(self, profile, stories, queries):
         """Predicts answers as one-hot encoding.
