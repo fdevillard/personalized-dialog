@@ -157,8 +157,12 @@ class ChatBot(object):
                 cost_t = self.model.batch_fit(p, s, q, a)
                 total_cost += cost_t
             if t % self.evaluation_interval == 0 or t == self.epochs:
+                print('validation')
+                print('predicting training full dataset...')
                 train_preds=self.batch_predict(trainP, trainS, trainQ, n_train)
+                print('predicting validation full dataset...')
                 val_preds=self.batch_predict(valP, valS,valQ,n_val)
+                print('finished predictions.')
                 train_acc = metrics.accuracy_score(np.array(train_preds), trainA)
                 val_acc = metrics.accuracy_score(val_preds, valA)
                 print('-----------------------')
@@ -256,9 +260,12 @@ if __name__ =='__main__':
 
     else:
         # chatbot.run()
+        import time
+        start_time = time.time()
         if FLAGS.train:
             chatbot.train()
         else:
             chatbot.test()
+        print('Duration:', (time.time() - start_time))
 
         chatbot.close_session()

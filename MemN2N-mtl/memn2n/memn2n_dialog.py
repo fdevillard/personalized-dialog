@@ -22,6 +22,7 @@ def zero_nil_slot(t, name=None):
         # z = tf.zeros([1, s])
         return tf.concat(0, [z, tf.slice(t, [1, 0], [-1, -1])], name=name)
 
+
 def add_gradient_noise(t, stddev=1e-3, name=None):
     """
     Adds gradient noise as described in http://arxiv.org/abs/1511.06807 [2].
@@ -114,7 +115,7 @@ class MemN2NDialog(object):
         self._init = initializer
         self._opt = optimizer
         self._name = name
-        self._candidates=candidates_vec
+        self._candidates = candidates_vec
         self._profile_idx_set = profiles_idx_set
         self._current_profile = None
         self._tf_vars = None    # Will contains all created variables as dict of dicts
@@ -124,7 +125,7 @@ class MemN2NDialog(object):
         
         # define summary directory
         timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-        self.root_dir = "%s_%s_%s_%s/" % ('task', str(task_id),'summary_output', timestamp)
+        self.root_dir = "%s_%s_%s_%s/" % ('task', str(task_id), 'summary_output', timestamp)
         
         
         # cross entropy
@@ -139,7 +140,7 @@ class MemN2NDialog(object):
         var_spaces = [MemN2NDialog.MODEL_NAME_SPECIFIC, MemN2NDialog.MODEL_NAME_SHARED]
         vars_to_optimize = [v for var_space in var_spaces for v in self._tf_vars[var_space].values()]
         grads_and_vars = self._opt.compute_gradients(loss_op, var_list=vars_to_optimize)
-        grads_and_vars = [(tf.clip_by_norm(g, self._max_grad_norm), v) for g,v in grads_and_vars]
+        grads_and_vars = [(tf.clip_by_norm(g, self._max_grad_norm), v) for g, v in grads_and_vars]
         # grads_and_vars = [(add_gradient_noise(g), v) for g,v in grads_and_vars]
         nil_grads_and_vars = []
         for g, v in grads_and_vars:
@@ -169,13 +170,13 @@ class MemN2NDialog(object):
         self._sess = session
         self._sess.run(init_op)
 
-
     def _build_inputs(self):
         self._stories = tf.placeholder(tf.int32, [None, None, self._sentence_size], name="stories")
         self._queries = tf.placeholder(tf.int32, [None, self._sentence_size], name="queries")
         self._answers = tf.placeholder(tf.int32, [None], name="answers")
 
-    def _variable_name_generator(self, variable_name, suffix=None):
+    @staticmethod
+    def _variable_name_generator(variable_name, suffix=None):
         """Simple helper function that appends suffix to variable_name if needed"""
         if suffix:
             return '{}_{}'.format(variable_name, suffix)
@@ -200,31 +201,31 @@ class MemN2NDialog(object):
                 'W': W,
             }
 
-        vars = dict()
+        model_vars = dict()
         with tf.variable_scope(self._name):
             nil_vars = set()
 
             with tf.variable_scope(MemN2NDialog.MODEL_NAME_SHARED):
                 created_vars = build_var_helper()
                 nil_vars = nil_vars | {created_vars['A'].name, created_vars['W'].name}
-                vars[MemN2NDialog.MODEL_NAME_SHARED] = created_vars
+                model_vars[MemN2NDialog.MODEL_NAME_SHARED] = created_vars
 
             with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC):
                 created_vars = build_var_helper()
                 nil_vars = nil_vars | {created_vars['A'].name, created_vars['W'].name}
-                vars[MemN2NDialog.MODEL_NAME_SPECIFIC] = created_vars
+                model_vars[MemN2NDialog.MODEL_NAME_SPECIFIC] = created_vars
 
         # Create isolated variable per profile
         with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES):
             profile_spec_vars = {p: build_var_helper(p) for p in self._profile_idx_set}
-            vars[MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES] = profile_spec_vars
+            model_vars[MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES] = profile_spec_vars
 
             As_list = {p['A'].name for p in profile_spec_vars.values()}
             Ws_list = {p['W'].name for p in profile_spec_vars.values()}
             nil_vars = nil_vars | As_list | Ws_list
 
         self._nil_vars = nil_vars
-        self._tf_vars = vars
+        self._tf_vars = model_vars
 
     def _change_profile(self, new_profile):
         """
@@ -244,13 +245,14 @@ class MemN2NDialog(object):
         assert new_profile in self._profile_idx_set, "Invalid profile specified"
 
         variables_names = ["A", "H", "W"]
+
         def get_variable_for_profile(p):
             if p is None:       # Assumed referring the profile-specific variables
-                vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SPECIFIC]
+                model_vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SPECIFIC]
             else:
-                vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES][p]
+                model_vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES][p]
 
-            ordered = list(map(lambda k: vars[k], variables_names))
+            ordered = list(map(lambda k: model_vars[k], variables_names))
             return list(ordered)
 
         # Obtain profile specific vars
@@ -262,13 +264,14 @@ class MemN2NDialog(object):
 
         # Update vars
         def assign_variable_values(modified_var, new_value_var):
-            modified_var.assign(new_value_var)
+            return modified_var.assign(new_value_var)
 
         if previous_vars:
-            set(map(lambda t: assign_variable_values(*t), zip(previous_vars, model_vars)))
+            upd = list(map(lambda t: assign_variable_values(*t), zip(previous_vars, model_vars)))
+            self._sess.run(upd)
 
-        set(map(lambda t: assign_variable_values(*t), zip(model_vars, new_vars)))
-
+        upd = list(map(lambda t: assign_variable_values(*t), zip(model_vars, new_vars)))
+        self._sess.run(upd)
 
     def _inference(self, stories, queries):
         def model_inference_helper(A, H, W):
@@ -301,24 +304,24 @@ class MemN2NDialog(object):
 
                 u.append(u_k)
 
-            candidates_emb=tf.nn.embedding_lookup(W, self._candidates)
-            candidates_emb_sum=tf.reduce_sum(candidates_emb,1)
+            candidates_emb = tf.nn.embedding_lookup(W, self._candidates)
+            candidates_emb_sum = tf.reduce_sum(candidates_emb, 1)
 
-            return tf.matmul(u_k,tf.transpose(candidates_emb_sum))
+            return tf.matmul(u_k, tf.transpose(candidates_emb_sum))
 
         with tf.variable_scope(self._name):
             with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC):
-                vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SPECIFIC]
-                spec_result = model_inference_helper(**vars)
+                model_vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SPECIFIC]
+                spec_result = model_inference_helper(**model_vars)
 
             with tf.variable_scope(MemN2NDialog.MODEL_NAME_SHARED):
-                vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SHARED]
-                shared_result = model_inference_helper(**vars)
+                model_vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SHARED]
+                shared_result = model_inference_helper(**model_vars)
 
             return tf.scalar_mul(0.5, tf.add(spec_result, shared_result))
 
-
-    def _dispatch_arguments_for_profiles(self, f, profiles, *args):
+    @staticmethod
+    def _dispatch_arguments_for_profiles(f, profiles, *args):
         """
         Helper function that dispatch `f` over same profiles.
 
@@ -336,7 +339,7 @@ class MemN2NDialog(object):
         Returns:
         The list of results (corresponding to each profiles)
         """
-        assert len(args)>0, "Must specify at least one argument for f"
+        assert len(args) > 0, "Must specify at least one argument for f"
 
         unique_profiles = set(profiles)
         if len(unique_profiles) < 2:
@@ -345,14 +348,13 @@ class MemN2NDialog(object):
         results = []
         for p in unique_profiles:
             indices_for_profile = {i for i in range(len(profiles)) if profiles[i] == p}
-            sublist_for_profile_gen = lambda lst: [e for (i,e) in enumerate(lst) if i in indices_for_profile]
+            sublist_for_profile_gen = lambda lst: [e for (i, e) in enumerate(lst) if i in indices_for_profile]
 
             profile_specific_args = list(map(sublist_for_profile_gen, args))
 
             results.append(f(p, *profile_specific_args))
 
         return results
-
 
     def batch_fit(self, profiles, stories, queries, answers):
         """Runs the training algorithm over the given batch
@@ -373,7 +375,6 @@ class MemN2NDialog(object):
                                                         answers)
 
         return np.mean(results)
-
 
     def _batch_fit_single_profile(self, profile, stories, queries, answers):
         """Runs the training algorithm over the given batch
