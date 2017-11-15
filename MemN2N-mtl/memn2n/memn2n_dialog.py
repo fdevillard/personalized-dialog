@@ -244,15 +244,15 @@ class MemN2NDialog(object):
 
         assert new_profile in self._profile_idx_set, "Invalid profile specified"
 
-        variables_names = ["A", "H", "W"]
-
         def get_variable_for_profile(p):
-            if p is None:       # Assumed referring the profile-specific variables
+            if p is None:
                 model_vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SPECIFIC]
             else:
                 model_vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES][p]
 
+            variables_names = ["A", "H", "W"]
             ordered = list(map(lambda k: model_vars[k], variables_names))
+
             return list(ordered)
 
         # Obtain profile specific vars
@@ -309,12 +309,12 @@ class MemN2NDialog(object):
 
             return tf.matmul(u_k, tf.transpose(candidates_emb_sum))
 
-        with tf.variable_scope(self._name):
-            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC):
+        with tf.variable_scope(self._name, reuse=True):
+            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC, reuse=True):
                 model_vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SPECIFIC]
                 spec_result = model_inference_helper(**model_vars)
 
-            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SHARED):
+            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SHARED, reuse=True):
                 model_vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SHARED]
                 shared_result = model_inference_helper(**model_vars)
 
