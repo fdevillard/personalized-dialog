@@ -190,10 +190,14 @@ class MemN2NDialog(object):
 
             nil_word_slot = tf.zeros([1, self._embedding_size])
             A = tf.concat(0, [ nil_word_slot, self._init([self._vocab_size-1, self._embedding_size]) ])
-            A = tf.Variable(A, name=var_name_gen('A'))
-            H = tf.Variable(self._init([self._embedding_size, self._embedding_size]), name=var_name_gen("H"))
+            A = tf.get_variable(var_name_gen('A'),
+                                initializer=A)
+            H = tf.get_variable(var_name_gen("H"),
+                                shape=[self._embedding_size, self._embedding_size],
+                                initializer=self._init)
             W = tf.concat(0, [ nil_word_slot, self._init([self._vocab_size-1, self._embedding_size]) ])
-            W = tf.Variable(W, name=var_name_gen("W"))
+            W = tf.get_variable(var_name_gen("W"),
+                                initializer=W)
 
             return {
                 'A': A,
