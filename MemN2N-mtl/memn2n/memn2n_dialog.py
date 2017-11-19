@@ -388,10 +388,33 @@ class MemN2NDialog(object):
         Returns:
             loss: floating-point number, the loss computed for the batch
         """
+        from numpy.linalg import norm
+        current_vars_values = None
+        vars_names = ["A", "H", "W"]
+        if profile != self._current_profile:
+            with tf.variable_scope(self._name):
+                with tf.variable_scope(self.MODEL_NAME_SPECIFIC, reuse=True):
+                    current_vars = self.get_variables()
+
+            current_vars_list = [current_vars[k] for k in vars_names]
+            current_vars_values = [norm(v, ord='fro') for v in self._sess.run(current_vars_list)]
+
         self._change_profile(profile)
 
         feed_dict = {self._stories: stories, self._queries: queries, self._answers: answers}
         loss, _ = self._sess.run([self.loss_op, self.train_op], feed_dict=feed_dict)
+
+        if current_vars_values:
+            with tf.variable_scope(self._name):
+                with tf.variable_scope(self.MODEL_NAME_SPECIFIC, reuse=True):
+                    current_vars = self.get_variables()
+
+            current_vars_list = [current_vars[k] for k in vars_names]
+            new_vars_values = [norm(v, ord='fro') for v in self._sess.run(current_vars_list)]
+
+            print("Previous:", current_vars_values, "New:", new_vars_values)
+
+
         return loss
 
     def predict(self, profiles, stories, queries):
