@@ -136,19 +136,17 @@ class MemN2NDialog(object):
         loss_op = cross_entropy_sum
 
         # gradient pipeline
-        # var_spaces = [MemN2NDialog.MODEL_NAME_SPECIFIC, MemN2NDialog.MODEL_NAME_SHARED]
-        # vars_to_optimize = [v for var_space in var_spaces for v in self._tf_vars[var_space].values()]
-        # grads_and_vars = self._opt.compute_gradients(loss_op, var_list=vars_to_optimize)
-        # grads_and_vars = [(tf.clip_by_norm(g, self._max_grad_norm), v) for g, v in grads_and_vars]
         grads_and_vars = self._opt.compute_gradients(loss_op)
 
         def clip_grad(g, v):
-            print(type(g))
+            if g is None:
+                return None
 
-            return (tf.clip_by_norm(g, self._max_grad_norm), v)
+            return tf.clip_by_norm(g, self._max_grad_norm), v
 
-        grads_and_vars = [(tf.clip_by_norm(g, self._max_grad_norm), v) for g, v in grads_and_vars]
-        # grads_and_vars = [(add_gradient_noise(g), v) for g,v in grads_and_vars]
+        grads_and_vars = [clip_grad(g,v) for g, v in grads_and_vars]
+        grads_and_vars = filter(lambda v: v is not None, grads_and_vars)
+
         nil_grads_and_vars = []
         for g, v in grads_and_vars:
             if v.name in self._nil_vars:
@@ -211,12 +209,12 @@ class MemN2NDialog(object):
                 created_vars = build_var_helper()
                 nil_vars = nil_vars | {created_vars['A'].name, created_vars['W'].name}
 
-        # Create isolated variable per profile
-        with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES):
-            for p in self._profile_idx_set:
-                with tf.variable_scope(str(p)):
-                    created_vars = build_var_helper()
-                    nil_vars = nil_vars | {created_vars['A'].name, created_vars['W'].name}
+            # Create isolated variable per profile
+            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES):
+                for p in self._profile_idx_set:
+                    with tf.variable_scope(str(p)):
+                        created_vars = build_var_helper()
+                        nil_vars = nil_vars | {created_vars['A'].name, created_vars['W'].name}
 
         self._nil_vars = nil_vars
 
@@ -229,7 +227,7 @@ class MemN2NDialog(object):
     def get_variables_for_profile(p):
         assert p is not None
 
-        with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES):
+        with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES, reuse=True):
             with tf.variable_scope(str(p), reuse=True):
                 return MemN2NDialog.get_variables()
 
@@ -251,12 +249,13 @@ class MemN2NDialog(object):
         assert new_profile in self._profile_idx_set, "Invalid profile specified"
 
         # Obtain profile specific vars
-        previous_vars = None if self._current_profile is None else self.get_variables_for_profile(self._current_profile)
-        new_vars = self.get_variables_for_profile(new_profile)
+        with tf.variable_scope(self._name):
+            previous_vars = None if self._current_profile is None else self.get_variables_for_profile(self._current_profile)
+            new_vars = self.get_variables_for_profile(new_profile)
 
-        # Obtain current model vars
-        with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC, reuse=True):
-            model_vars = self.get_variables()
+            # Obtain current model vars
+            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC, reuse=True):
+                model_vars = self.get_variables()
 
         # Update vars
         def update_vars(modified_vars, new_value_vars):
