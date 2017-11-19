@@ -118,7 +118,6 @@ class MemN2NDialog(object):
         self._candidates = candidates_vec
         self._profile_idx_set = profiles_idx_set
         self._current_profile = None
-        self._tf_vars = None    # Will contains all created variables as dict of dicts
 
         self._build_inputs()
         self._build_vars()
@@ -137,9 +136,17 @@ class MemN2NDialog(object):
         loss_op = cross_entropy_sum
 
         # gradient pipeline
-        var_spaces = [MemN2NDialog.MODEL_NAME_SPECIFIC, MemN2NDialog.MODEL_NAME_SHARED]
-        vars_to_optimize = [v for var_space in var_spaces for v in self._tf_vars[var_space].values()]
-        grads_and_vars = self._opt.compute_gradients(loss_op, var_list=vars_to_optimize)
+        # var_spaces = [MemN2NDialog.MODEL_NAME_SPECIFIC, MemN2NDialog.MODEL_NAME_SHARED]
+        # vars_to_optimize = [v for var_space in var_spaces for v in self._tf_vars[var_space].values()]
+        # grads_and_vars = self._opt.compute_gradients(loss_op, var_list=vars_to_optimize)
+        # grads_and_vars = [(tf.clip_by_norm(g, self._max_grad_norm), v) for g, v in grads_and_vars]
+        grads_and_vars = self._opt.compute_gradients(loss_op)
+
+        def clip_grad(g, v):
+            print(type(g))
+
+            return (tf.clip_by_norm(g, self._max_grad_norm), v)
+
         grads_and_vars = [(tf.clip_by_norm(g, self._max_grad_norm), v) for g, v in grads_and_vars]
         # grads_and_vars = [(add_gradient_noise(g), v) for g,v in grads_and_vars]
         nil_grads_and_vars = []
@@ -175,29 +182,17 @@ class MemN2NDialog(object):
         self._queries = tf.placeholder(tf.int32, [None, self._sentence_size], name="queries")
         self._answers = tf.placeholder(tf.int32, [None], name="answers")
 
-    @staticmethod
-    def _variable_name_generator(variable_name, suffix=None):
-        """Simple helper function that appends suffix to variable_name if needed"""
-        if suffix:
-            return '{}_{}'.format(variable_name, suffix)
-        else:
-            return variable_name
-
     def _build_vars(self):
-        def build_var_helper(variable_suffix=None):
+        def build_var_helper():
             # Simple lambda to construct variable name
-            var_name_gen = lambda name: self._variable_name_generator(name, variable_suffix)
-
             nil_word_slot = tf.zeros([1, self._embedding_size])
             A = tf.concat(0, [ nil_word_slot, self._init([self._vocab_size-1, self._embedding_size]) ])
-            A = tf.get_variable(var_name_gen('A'),
-                                initializer=A)
-            H = tf.get_variable(var_name_gen("H"),
-                                shape=[self._embedding_size, self._embedding_size],
-                                initializer=self._init)
+            A = tf.get_variable('A', initializer=A)
+
+            H = tf.get_variable("H", shape=[self._embedding_size, self._embedding_size], initializer=self._init)
+
             W = tf.concat(0, [ nil_word_slot, self._init([self._vocab_size-1, self._embedding_size]) ])
-            W = tf.get_variable(var_name_gen("W"),
-                                initializer=W)
+            W = tf.get_variable("W", initializer=W)
 
             return {
                 'A': A,
@@ -205,31 +200,38 @@ class MemN2NDialog(object):
                 'W': W,
             }
 
-        model_vars = dict()
         with tf.variable_scope(self._name):
             nil_vars = set()
 
             with tf.variable_scope(MemN2NDialog.MODEL_NAME_SHARED):
                 created_vars = build_var_helper()
                 nil_vars = nil_vars | {created_vars['A'].name, created_vars['W'].name}
-                model_vars[MemN2NDialog.MODEL_NAME_SHARED] = created_vars
 
             with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC):
                 created_vars = build_var_helper()
                 nil_vars = nil_vars | {created_vars['A'].name, created_vars['W'].name}
-                model_vars[MemN2NDialog.MODEL_NAME_SPECIFIC] = created_vars
 
         # Create isolated variable per profile
         with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES):
-            profile_spec_vars = {p: build_var_helper(p) for p in self._profile_idx_set}
-            model_vars[MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES] = profile_spec_vars
-
-            As_list = {p['A'].name for p in profile_spec_vars.values()}
-            Ws_list = {p['W'].name for p in profile_spec_vars.values()}
-            nil_vars = nil_vars | As_list | Ws_list
+            for p in self._profile_idx_set:
+                with tf.variable_scope(str(p)):
+                    created_vars = build_var_helper()
+                    nil_vars = nil_vars | {created_vars['A'].name, created_vars['W'].name}
 
         self._nil_vars = nil_vars
-        self._tf_vars = model_vars
+
+    @staticmethod
+    def get_variables():
+        variables_names = ["A", "H", "W"]
+        return {k: tf.get_variable(k) for k in variables_names}
+
+    @staticmethod
+    def get_variables_for_profile(p):
+        assert p is not None
+
+        with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES):
+            with tf.variable_scope(str(p), reuse=True):
+                return MemN2NDialog.get_variables()
 
     def _change_profile(self, new_profile):
         """
@@ -248,33 +250,27 @@ class MemN2NDialog(object):
 
         assert new_profile in self._profile_idx_set, "Invalid profile specified"
 
-        def get_variable_for_profile(p):
-            if p is None:
-                model_vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SPECIFIC]
-            else:
-                model_vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES][p]
-
-            variables_names = ["A", "H", "W"]
-            ordered = list(map(lambda k: model_vars[k], variables_names))
-
-            return list(ordered)
-
         # Obtain profile specific vars
-        previous_vars = None if self._current_profile is None else get_variable_for_profile(self._current_profile)
-        new_vars = get_variable_for_profile(new_profile)
+        previous_vars = None if self._current_profile is None else self.get_variables_for_profile(self._current_profile)
+        new_vars = self.get_variables_for_profile(new_profile)
 
         # Obtain current model vars
-        model_vars = get_variable_for_profile(None)
+        with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC, reuse=True):
+            model_vars = self.get_variables()
 
         # Update vars
-        def assign_variable_values(modified_var, new_value_var):
-            return modified_var.assign(new_value_var)
+        def update_vars(modified_vars, new_value_vars):
+            keys = sorted(list(modified_vars.keys()))
+            assert keys == sorted(list(new_value_vars.keys()))
+
+            assign_ops = [modified_vars[k].assign(new_value_vars[k]) for k in keys]
+            return assign_ops
 
         if previous_vars:
-            upd = list(map(lambda t: assign_variable_values(*t), zip(previous_vars, model_vars)))
+            upd = update_vars(previous_vars, model_vars)
             self._sess.run(upd)
 
-        upd = list(map(lambda t: assign_variable_values(*t), zip(model_vars, new_vars)))
+        upd = update_vars(model_vars, new_vars)
         self._sess.run(upd)
 
     def _inference(self, stories, queries):
@@ -315,11 +311,11 @@ class MemN2NDialog(object):
 
         with tf.variable_scope(self._name, reuse=True):
             with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC, reuse=True):
-                model_vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SPECIFIC]
+                model_vars = self.get_variables()
                 spec_result = model_inference_helper(**model_vars)
 
             with tf.variable_scope(MemN2NDialog.MODEL_NAME_SHARED, reuse=True):
-                model_vars = self._tf_vars[MemN2NDialog.MODEL_NAME_SHARED]
+                model_vars = self.get_variables()
                 shared_result = model_inference_helper(**model_vars)
 
             return tf.scalar_mul(0.5, tf.add(spec_result, shared_result))
