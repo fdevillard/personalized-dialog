@@ -45,7 +45,6 @@ class MemN2NDialog(object):
 
     MODEL_NAME_SHARED = 'shared'
     MODEL_NAME_SPECIFIC = 'profilespecific'
-    MODEL_NAME_SPECIFIC_VARIABLES = 'profilespecificvars'
 
     def __init__(self,
                  batch_size,
@@ -134,7 +133,7 @@ class MemN2NDialog(object):
         
         
         # cross entropy
-        logits = self._inference(self._stories, self._queries) # (batch_size, candidates_size)
+        logits = self._inference(self._profile, self._stories, self._queries) # (batch_size, candidates_size)
         cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits, self._answers, name="cross_entropy")
         cross_entropy_sum = tf.reduce_sum(cross_entropy, name="cross_entropy_sum")
 
@@ -182,13 +181,13 @@ class MemN2NDialog(object):
         self._sess.run(init_op)
 
     def _build_inputs(self):
+        self._profile = tf.placeholder(tf.int8, [1], name="profile")
         self._stories = tf.placeholder(tf.int32, [None, None, self._sentence_size], name="stories")
         self._queries = tf.placeholder(tf.int32, [None, self._sentence_size], name="queries")
         self._answers = tf.placeholder(tf.int32, [None], name="answers")
 
     def _build_vars(self):
         def build_var_helper():
-            # Simple lambda to construct variable name
             nil_word_slot = tf.zeros([1, self._embedding_size])
             A = tf.concat(0, [ nil_word_slot, self._init([self._vocab_size-1, self._embedding_size]) ])
             A = tf.get_variable('A', initializer=A)
@@ -212,11 +211,6 @@ class MemN2NDialog(object):
                 nil_vars = nil_vars | {created_vars['A'].name, created_vars['W'].name}
 
             with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC):
-                created_vars = build_var_helper()
-                nil_vars = nil_vars | {created_vars['A'].name, created_vars['W'].name}
-
-            # Create isolated variable per profile
-            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES):
                 for p in self._profile_idx_set:
                     with tf.variable_scope(str(p)):
                         created_vars = build_var_helper()
@@ -233,52 +227,11 @@ class MemN2NDialog(object):
     def get_variables_for_profile(p):
         assert p is not None
 
-        with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC_VARIABLES, reuse=True):
+        with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC, reuse=True):
             with tf.variable_scope(str(p), reuse=True):
                 return MemN2NDialog.get_variables()
 
-    def _change_profile(self, new_profile):
-        """
-        Change the profile-specific variables' values.
-
-        The model almost the same between all profiles, the choice here
-        is to update variables' values when we switch of profiles.
-
-        Does nothing if the profile is the same as self._current_profile
-
-        Args:
-            new_profile: the new profile ID (has to be in self._profile_idx_set)
-        """
-        if new_profile == self._current_profile:
-            return
-
-        assert new_profile in self._profile_idx_set, "Invalid profile specified"
-
-        # Obtain profile specific vars
-        with tf.variable_scope(self._name):
-            previous_vars = None if self._current_profile is None else self.get_variables_for_profile(self._current_profile)
-            new_vars = self.get_variables_for_profile(new_profile)
-
-            # Obtain current model vars
-            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC, reuse=True):
-                model_vars = self.get_variables()
-
-        # Update vars
-        def update_vars(modified_vars, new_value_vars):
-            keys = sorted(list(modified_vars.keys()))
-            assert keys == sorted(list(new_value_vars.keys()))
-
-            assign_ops = [modified_vars[k].assign(new_value_vars[k]) for k in keys]
-            return assign_ops
-
-        if previous_vars:
-            upd = update_vars(previous_vars, model_vars)
-            self._sess.run(upd)
-
-        upd = update_vars(model_vars, new_vars)
-        self._sess.run(upd)
-
-    def _inference(self, stories, queries):
+    def _inference(self, profile, stories, queries):
         def model_inference_helper(A, H, W):
             q_emb = tf.nn.embedding_lookup(A, queries)
             u_0 = tf.reduce_sum(q_emb, 1)
@@ -396,34 +349,9 @@ class MemN2NDialog(object):
         Returns:
             loss: floating-point number, the loss computed for the batch
         """
-        if self._verbose:
-            from numpy.linalg import norm
-            current_vars_values = None
-            vars_names = ["A", "H", "W"]
-            if profile != self._current_profile:
-                with tf.variable_scope(self._name):
-                    with tf.variable_scope(self.MODEL_NAME_SPECIFIC, reuse=True):
-                        current_vars = self.get_variables()
-
-                current_vars_list = [current_vars[k] for k in vars_names]
-                current_vars_values = [norm(v, ord='fro') for v in self._sess.run(current_vars_list)]
-
-        self._change_profile(profile)
 
         feed_dict = {self._stories: stories, self._queries: queries, self._answers: answers}
         loss, _ = self._sess.run([self.loss_op, self.train_op], feed_dict=feed_dict)
-
-        if self._verbose:
-            with tf.variable_scope(self._name):
-                with tf.variable_scope(self.MODEL_NAME_SPECIFIC, reuse=True):
-                    current_vars = self.get_variables()
-
-            current_vars_list = [current_vars[k] for k in vars_names]
-            new_vars_values = [norm(v, ord='fro') for v in self._sess.run(current_vars_list)]
-
-            if profile == 0:
-                print("Previous:", current_vars_values, "New:", new_vars_values)
-
 
         return loss
 
@@ -457,7 +385,6 @@ class MemN2NDialog(object):
         Returns:
             answers: Tensor (None, vocab_size)
         """
-        self._change_profile(profile)
 
         feed_dict = {self._stories: stories, self._queries: queries}
         return self._sess.run(self.predict_op, feed_dict=feed_dict)
