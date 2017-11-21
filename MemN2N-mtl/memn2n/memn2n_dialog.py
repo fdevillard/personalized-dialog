@@ -145,6 +145,7 @@ class MemN2NDialog(object):
 
         def clip_grad(g, v):
             if g is None:
+                print("Gradient is indeed none:", v.name)
                 return None
 
             return tf.clip_by_norm(g, self._max_grad_norm), v
@@ -181,7 +182,7 @@ class MemN2NDialog(object):
         self._sess.run(init_op)
 
     def _build_inputs(self):
-        self._profile = tf.placeholder(tf.int8, [1], name="profile")
+        self._profile = tf.placeholder(tf.int8, shape=(), name="profile")
         self._stories = tf.placeholder(tf.int32, [None, None, self._sentence_size], name="stories")
         self._queries = tf.placeholder(tf.int32, [None, self._sentence_size], name="queries")
         self._answers = tf.placeholder(tf.int32, [None], name="answers")
@@ -267,14 +268,34 @@ class MemN2NDialog(object):
 
             return tf.matmul(u_k, tf.transpose(candidates_emb_sum))
 
-        with tf.variable_scope(self._name, reuse=True):
-            with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC, reuse=True):
-                model_vars = self.get_variables()
-                spec_result = model_inference_helper(**model_vars)
+        def construct_model_for_profile(p):
+            p_vars = self.get_variables_for_profile(p)
+            model = model_inference_helper(**p_vars)
 
+            if self._verbose:
+                model = tf.Print(model, [self._profile], message="Profile {}".format(p))
+
+            return model
+
+        with tf.variable_scope(self._name, reuse=True):
             with tf.variable_scope(MemN2NDialog.MODEL_NAME_SHARED, reuse=True):
                 model_vars = self.get_variables()
                 shared_result = model_inference_helper(**model_vars)
+
+            specific_models = {p: construct_model_for_profile(p) for p in self._profile_idx_set}
+            clean_case = {tf.equal(profile, p): lambda: v for (p,v) in specific_models.items()}
+
+            print('profiles in case:', specific_models.keys())      # Profiles used in big case
+
+            # In tensorflow 0.12, default has to be given (and be a true `constructor`). This behavior is
+            # different in more recent implementation of tensorflow.
+            # The choice here is to simply add one arbitrary case with a print as default
+            def default_constructor():
+                arb_p, arb_opt = list(specific_models.items())[0]
+                print('Profile used as default:', arb_p)
+                return tf.Print(arb_opt, data=[tf.constant([0])], message="Called default case in switch. Not good.")
+
+            spec_result = tf.case(clean_case, default=default_constructor, name='dispatching_profile')
 
             specific_scaled = tf.scalar_mul(self._alpha, spec_result)
             shared_scaled = tf.scalar_mul(1-self._alpha, shared_result)
@@ -349,8 +370,7 @@ class MemN2NDialog(object):
         Returns:
             loss: floating-point number, the loss computed for the batch
         """
-
-        feed_dict = {self._stories: stories, self._queries: queries, self._answers: answers}
+        feed_dict = {self._profile: profile, self._stories: stories, self._queries: queries, self._answers: answers}
         loss, _ = self._sess.run([self.loss_op, self.train_op], feed_dict=feed_dict)
 
         return loss
@@ -386,5 +406,5 @@ class MemN2NDialog(object):
             answers: Tensor (None, vocab_size)
         """
 
-        feed_dict = {self._stories: stories, self._queries: queries}
+        feed_dict = {self._profile: profile, self._stories: stories, self._queries: queries}
         return self._sess.run(self.predict_op, feed_dict=feed_dict)
