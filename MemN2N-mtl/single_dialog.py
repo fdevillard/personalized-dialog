@@ -32,6 +32,7 @@ tf.flags.DEFINE_boolean('interactive', False, 'if True, interactive')
 tf.flags.DEFINE_boolean('OOV', False, 'if True, use OOV test set')
 tf.flags.DEFINE_boolean('save_vocab', False, 'if True, saves vocabulary')
 tf.flags.DEFINE_boolean('load_vocab', False, 'if True, loads vocabulary instead of building it')
+tf.flags.DEFINE_boolean('verbose', False, "if True, print different debugging messages")
 FLAGS = tf.flags.FLAGS
 print("Started Task:", FLAGS.task_id)
 
@@ -237,7 +238,8 @@ if __name__ =='__main__':
                     save_vocab=FLAGS.save_vocab,
                     load_vocab=FLAGS.load_vocab,
                     epochs=FLAGS.epochs,
-                    evaluation_interval=FLAGS.evaluation_interval)
+                    evaluation_interval=FLAGS.evaluation_interval,
+                    verbose=FLAGS.verbose)
 
     if FLAGS.interactive:
         from IPython import embed

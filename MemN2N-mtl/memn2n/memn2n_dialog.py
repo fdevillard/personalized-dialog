@@ -62,7 +62,8 @@ class MemN2NDialog(object):
                  optimizer=tf.train.AdamOptimizer(learning_rate=1e-2),
                  session=tf.Session(),
                  name='MemN2N',
-                 task_id=1):
+                 task_id=1,
+                 verbose=False):
         """Creates an End-To-End Memory Network
 
         Args:
@@ -118,6 +119,7 @@ class MemN2NDialog(object):
         self._candidates = candidates_vec
         self._profile_idx_set = profiles_idx_set
         self._current_profile = None
+        self._verbose = verbose
 
         self._build_inputs()
         self._build_vars()
@@ -388,23 +390,24 @@ class MemN2NDialog(object):
         Returns:
             loss: floating-point number, the loss computed for the batch
         """
-        from numpy.linalg import norm
-        current_vars_values = None
-        vars_names = ["A", "H", "W"]
-        if profile != self._current_profile:
-            with tf.variable_scope(self._name):
-                with tf.variable_scope(self.MODEL_NAME_SPECIFIC, reuse=True):
-                    current_vars = self.get_variables()
+        if self._verbose:
+            from numpy.linalg import norm
+            current_vars_values = None
+            vars_names = ["A", "H", "W"]
+            if profile != self._current_profile:
+                with tf.variable_scope(self._name):
+                    with tf.variable_scope(self.MODEL_NAME_SPECIFIC, reuse=True):
+                        current_vars = self.get_variables()
 
-            current_vars_list = [current_vars[k] for k in vars_names]
-            current_vars_values = [norm(v, ord='fro') for v in self._sess.run(current_vars_list)]
+                current_vars_list = [current_vars[k] for k in vars_names]
+                current_vars_values = [norm(v, ord='fro') for v in self._sess.run(current_vars_list)]
 
         self._change_profile(profile)
 
         feed_dict = {self._stories: stories, self._queries: queries, self._answers: answers}
         loss, _ = self._sess.run([self.loss_op, self.train_op], feed_dict=feed_dict)
 
-        if current_vars_values:
+        if current_vars_values and self._verbose:
             with tf.variable_scope(self._name):
                 with tf.variable_scope(self.MODEL_NAME_SPECIFIC, reuse=True):
                     current_vars = self.get_variables()
@@ -412,7 +415,8 @@ class MemN2NDialog(object):
             current_vars_list = [current_vars[k] for k in vars_names]
             new_vars_values = [norm(v, ord='fro') for v in self._sess.run(current_vars_list)]
 
-            print("Previous:", current_vars_values, "New:", new_vars_values)
+            if profile == 0:
+                print("Previous:", current_vars_values, "New:", new_vars_values)
 
 
         return loss
