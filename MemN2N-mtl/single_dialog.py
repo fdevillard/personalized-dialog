@@ -33,6 +33,7 @@ tf.flags.DEFINE_boolean('OOV', False, 'if True, use OOV test set')
 tf.flags.DEFINE_boolean('save_vocab', False, 'if True, saves vocabulary')
 tf.flags.DEFINE_boolean('load_vocab', False, 'if True, loads vocabulary instead of building it')
 tf.flags.DEFINE_boolean('verbose', False, "if True, print different debugging messages")
+tf.flags.DEFINE_float('alpha', .5, "Value of the alpha parameter, used to prefer one part of the model")
 FLAGS = tf.flags.FLAGS
 print("Started Task:", FLAGS.task_id)
 
@@ -54,9 +55,11 @@ class ChatBot(object):
                  hops=3,
                  epochs=200,
                  embedding_size=20,
+                 alpha=.5,
                  save_vocab=False,
                  load_vocab=False,
                  verbose=False):
+
         self.data_dir=data_dir
         self.task_id=task_id
         self.model_dir=model_dir
@@ -76,6 +79,7 @@ class ChatBot(object):
         self.save_vocab=save_vocab
         self.load_vocab=load_vocab
         self.verbose = verbose
+        self.alpha = alpha
 
         # Loading possible answers
         candidates,self.candid2indx = load_candidates(self.data_dir, self.task_id)
@@ -115,6 +119,7 @@ class ChatBot(object):
                                   session=self.sess,
                                   hops=self.hops,
                                   max_grad_norm=self.max_grad_norm,
+                                  alpha=alpha,
                                   optimizer=optimizer,
                                   task_id=task_id,
                                   verbose=verbose)
@@ -259,7 +264,8 @@ if __name__ =='__main__':
                     load_vocab=FLAGS.load_vocab,
                     epochs=FLAGS.epochs,
                     evaluation_interval=FLAGS.evaluation_interval,
-                    verbose=FLAGS.verbose)
+                    verbose=FLAGS.verbose,
+                    alpha=FLAGS.alpha)
 
     if FLAGS.interactive:
         from IPython import embed

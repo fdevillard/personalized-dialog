@@ -58,6 +58,7 @@ class MemN2NDialog(object):
                  hops=3,
                  max_grad_norm=40.0,
                  nonlin=None,
+                 alpha=.5,
                  initializer=tf.random_normal_initializer(stddev=0.1),
                  optimizer=tf.train.AdamOptimizer(learning_rate=1e-2),
                  session=tf.Session(),
@@ -112,6 +113,7 @@ class MemN2NDialog(object):
         self._embedding_size = embedding_size
         self._hops = hops
         self._max_grad_norm = max_grad_norm
+        self._alpha = alpha
         self._nonlin = nonlin
         self._init = initializer
         self._opt = optimizer
@@ -123,7 +125,9 @@ class MemN2NDialog(object):
 
         self._build_inputs()
         self._build_vars()
-        
+
+        print('alpha:', self._alpha)        # TODO Remove me
+
         # define summary directory
         timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
         self.root_dir = "%s_%s_%s_%s/" % ('task', str(task_id), 'summary_output', timestamp)
@@ -319,7 +323,9 @@ class MemN2NDialog(object):
                 model_vars = self.get_variables()
                 shared_result = model_inference_helper(**model_vars)
 
-            return tf.scalar_mul(0.5, tf.add(spec_result, shared_result))
+            specific_scaled = tf.scalar_mul(self._alpha, spec_result)
+            shared_scaled = tf.scalar_mul(1-self._alpha, shared_result)
+            return tf.add(specific_scaled, shared_scaled)
 
     @staticmethod
     def _dispatch_arguments_for_profiles(f, profiles, *args):
