@@ -407,7 +407,7 @@ class MemN2NDialog(object):
         feed_dict = {self._stories: stories, self._queries: queries, self._answers: answers}
         loss, _ = self._sess.run([self.loss_op, self.train_op], feed_dict=feed_dict)
 
-        if current_vars_values and self._verbose:
+        if self._verbose:
             with tf.variable_scope(self._name):
                 with tf.variable_scope(self.MODEL_NAME_SPECIFIC, reuse=True):
                     current_vars = self.get_variables()

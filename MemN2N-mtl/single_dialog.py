@@ -38,7 +38,25 @@ print("Started Task:", FLAGS.task_id)
 
 
 class ChatBot(object):
-    def __init__(self,data_dir,model_dir,task_id,isInteractive=True,OOV=False,memory_size=250,random_state=None,batch_size=32,learning_rate=0.001,epsilon=1e-8,max_grad_norm=40.0,evaluation_interval=10,hops=3,epochs=200,embedding_size=20,save_vocab=False,load_vocab=False):
+    def __init__(self,
+                 data_dir,
+                 model_dir,
+                 task_id,
+                 isInteractive=True,
+                 OOV=False,
+                 memory_size=250,
+                 random_state=None,
+                 batch_size=32,
+                 learning_rate=0.001,
+                 epsilon=1e-8,
+                 max_grad_norm=40.0,
+                 evaluation_interval=10,
+                 hops=3,
+                 epochs=200,
+                 embedding_size=20,
+                 save_vocab=False,
+                 load_vocab=False,
+                 verbose=False):
         self.data_dir=data_dir
         self.task_id=task_id
         self.model_dir=model_dir
@@ -57,6 +75,7 @@ class ChatBot(object):
         self.embedding_size=embedding_size
         self.save_vocab=save_vocab
         self.load_vocab=load_vocab
+        self.verbose = verbose
 
         # Loading possible answers
         candidates,self.candid2indx = load_candidates(self.data_dir, self.task_id)
@@ -97,7 +116,8 @@ class ChatBot(object):
                                   hops=self.hops,
                                   max_grad_norm=self.max_grad_norm,
                                   optimizer=optimizer,
-                                  task_id=task_id)
+                                  task_id=task_id,
+                                  verbose=verbose)
         self.saver = tf.train.Saver(max_to_keep=50)
         
         # self.summary_writer = tf.train.SummaryWriter(self.model.root_dir, self.model.graph_output.graph)
