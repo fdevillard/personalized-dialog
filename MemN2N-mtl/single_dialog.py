@@ -13,6 +13,8 @@ import tensorflow as tf
 import numpy as np
 import os
 import pickle
+import pandas as pd
+import random
 
 tf.flags.DEFINE_float("learning_rate", 0.001, "Learning rate for Adam Optimizer.")
 tf.flags.DEFINE_float("epsilon", 1e-8, "Epsilon value for Adam Optimizer.")
@@ -234,19 +236,33 @@ class ChatBot(object):
             #     print(pred, self.indx2candid[pred])
 
     def batch_predict(self,P,S,Q,n):
-        preds=[]
-        for start in range(0, n, self.batch_size):
-            end = start + self.batch_size
-            p = P[start:end]
-            s = S[start:end]
-            q = Q[start:end]
-            pred = self.model.predict(p, s, q)
-            preds += list(pred)
+        storie_sizes = [s.shape for s in S]
+        df = pd.DataFrame(dict(P=P, storie_size=storie_sizes))
+        df['predictions'] = pd.Series()
 
-        return preds
+        while True:
+            not_yet_predicted = df.predictions.isnull()
+            if not not_yet_predicted.any():
+                break
+
+            p = random.choice(df[not_yet_predicted].P.unique())
+
+            first_story_size = df[not_yet_predicted & (df.P == p)].storie_size.iloc[0]
+            prediction_slice = df[not_yet_predicted & (df.P == p) & (df.storie_size == first_story_size)].iloc[:self.batch_size]
+
+            s = np.array([S[i] for i in prediction_slice.index])#, dtype=np.int64)
+            q = np.array([Q[i] for i in prediction_slice.index])#, dtype=np.int64)
+
+            preds = self.model._predict_single_profile(p, s, q)
+
+            for i, idx in enumerate(prediction_slice.index):
+                df.loc[idx, 'predictions'] = preds[i]
+
+        return df.predictions.values
 
     def close_session(self):
         self.sess.close()
+
 
 if __name__ =='__main__':
     model_dir="tmp/task"+str(FLAGS.task_id)+"_"+FLAGS.model_dir
