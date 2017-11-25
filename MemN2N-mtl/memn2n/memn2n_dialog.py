@@ -218,6 +218,7 @@ class MemN2NDialog(object):
                         nil_vars = nil_vars | {created_vars['A'].name, created_vars['W'].name}
 
         self._nil_vars = nil_vars
+        print('nil_vars:', self._nil_vars)
 
     @staticmethod
     def get_variables():
@@ -282,24 +283,28 @@ class MemN2NDialog(object):
                 model_vars = self.get_variables()
                 shared_result = model_inference_helper(**model_vars)
 
-            specific_models = {p: construct_model_for_profile(p) for p in self._profile_idx_set}
-            clean_case = {tf.equal(profile, p): lambda: v for (p,v) in specific_models.items()}
+            def construct_case_element(p):
+                return (tf.equal(self._profile, p), lambda: construct_model_for_profile(p))
 
-            print('profiles in case:', specific_models.keys())      # Profiles used in big case
+            clean_case = [construct_case_element(p) for p in self._profile_idx_set]
 
             # In tensorflow 0.12, default has to be given (and be a true `constructor`). This behavior is
             # different in more recent implementation of tensorflow.
             # The choice here is to simply add one arbitrary case with a print as default
             def default_constructor():
-                arb_p, arb_opt = list(specific_models.items())[0]
-                print('Profile used as default:', arb_p)
-                return tf.Print(arb_opt, data=[tf.constant([0])], message="Called default case in switch. Not good.")
+                first_model = clean_case[0][1]()
+                return tf.Print(first_model, data=[tf.constant([0])], message="Called default case in switch. Not good.")
 
-            spec_result = tf.case(clean_case, default=default_constructor, name='dispatching_profile')
+            spec_result = tf.case(clean_case, default=default_constructor, exclusive=True, name='dispatching_profile')
 
-            specific_scaled = tf.scalar_mul(self._alpha, spec_result)
-            shared_scaled = tf.scalar_mul(1-self._alpha, shared_result)
-            return tf.add(specific_scaled, shared_scaled)
+            if self._alpha == 0:
+                return shared_result
+            elif self._alpha == 1:
+                return spec_result
+            else:
+                specific_scaled = tf.scalar_mul(self._alpha, spec_result)
+                shared_scaled = tf.scalar_mul(1-self._alpha, shared_result)
+                return tf.add(specific_scaled, shared_scaled)
 
     @staticmethod
     def _dispatch_arguments_for_profiles(f, profiles, *args):
