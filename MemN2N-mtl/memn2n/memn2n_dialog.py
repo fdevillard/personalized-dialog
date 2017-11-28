@@ -5,6 +5,8 @@ import tensorflow as tf
 import numpy as np
 from six.moves import range
 from datetime import datetime
+import pandas as pd
+import random
 
 
 def zero_nil_slot(t, name=None):
@@ -307,7 +309,7 @@ class MemN2NDialog(object):
                 return tf.add(specific_scaled, shared_scaled)
 
     @staticmethod
-    def _dispatch_arguments_for_profiles(f, profiles, *args):
+    def _dispatch_arguments_for_profiles(f, batch_size, profiles, stories, *args):
         """
         Helper function that dispatch `f` over same profiles.
 
@@ -327,20 +329,34 @@ class MemN2NDialog(object):
         """
         assert len(args) > 0, "Must specify at least one argument for f"
 
-        unique_profiles = set(profiles)
-        if len(unique_profiles) < 2:
-            print("Calling _dispatch_arguments_for_profiles with less than two different profiles")
+        storie_sizes = [s.shape for s in stories]
+        df = pd.DataFrame(dict(P=profiles, storie_size=storie_sizes))
+        df['ans'] = pd.Series()
 
-        results = []
-        for p in unique_profiles:
-            indices_for_profile = {i for i in range(len(profiles)) if profiles[i] == p}
-            sublist_for_profile_gen = lambda lst: [e for (i, e) in enumerate(lst) if i in indices_for_profile]
+        while True:
+            not_yet_predicted = df.ans.isnull()
+            if not not_yet_predicted.any():
+                break
 
-            profile_specific_args = list(map(sublist_for_profile_gen, args))
+            p = random.choice(df[not_yet_predicted].P.unique())
 
-            results.append(f(p, *profile_specific_args))
+            first_story_size = df[not_yet_predicted & (df.P == p)].storie_size.iloc[0]
+            prediction_slice = df[not_yet_predicted & (df.P == p) & (df.storie_size == first_story_size)].iloc[:batch_size]
 
-        return results
+            def select_elements(l, indices):
+                return np.array([l[i] for i in indices])
+
+            indices = prediction_slice.index
+
+            s = select_elements(stories, indices)
+            args_sel = list(map(lambda l: select_elements(l, indices), args))
+
+            preds = f(p, s, *args_sel)
+
+            for i, idx in enumerate(prediction_slice.index):
+                df.loc[idx, 'ans'] = preds[i]
+
+        return df.ans.values
 
     def batch_fit(self, profiles, stories, queries, answers):
         """Runs the training algorithm over the given batch
@@ -355,6 +371,7 @@ class MemN2NDialog(object):
             loss: floating-point number, the loss computed for the batch
         """
         results = self._dispatch_arguments_for_profiles(self._batch_fit_single_profile,
+                                                        self._batch_size,
                                                         profiles,
                                                         stories,
                                                         queries,
@@ -378,9 +395,9 @@ class MemN2NDialog(object):
         feed_dict = {self._profile: profile, self._stories: stories, self._queries: queries, self._answers: answers}
         loss, _ = self._sess.run([self.loss_op, self.train_op], feed_dict=feed_dict)
 
-        return loss
+        return [loss] * len(stories)
 
-    def predict(self, profiles, stories, queries):
+    def batch_predict(self, profiles, stories, queries):
         """Predicts answers as one-hot encoding.
 
         Args:
@@ -392,11 +409,12 @@ class MemN2NDialog(object):
             answers: Tensor (None, vocab_size)
         """
         results = self._dispatch_arguments_for_profiles(self._predict_single_profile,
+                                                        self._batch_size,
                                                         profiles,
                                                         stories,
                                                         queries)
 
-        return np.concatenate(results)
+        return results
 
     def _predict_single_profile(self, profile, stories, queries):
         """Predicts answers as one-hot encoding.

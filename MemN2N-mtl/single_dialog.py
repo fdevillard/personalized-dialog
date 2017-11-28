@@ -187,9 +187,9 @@ class ChatBot(object):
             if t % self.evaluation_interval == 0 or t == self.epochs:
                 print('validation')
                 print('predicting training full dataset...')
-                train_preds=self.batch_predict(trainP, trainS, trainQ, n_train)
+                train_preds=self.model.batch_predict(trainP, trainS, trainQ)
                 print('predicting validation full dataset...')
-                val_preds=self.batch_predict(valP, valS,valQ,n_val)
+                val_preds=self.model.batch_predict(valP, valS,valQ)
                 print('finished predictions.')
                 train_acc = metrics.accuracy_score(np.array(train_preds), trainA)
                 val_acc = metrics.accuracy_score(val_preds, valA)
@@ -227,38 +227,13 @@ class ChatBot(object):
             testP, testS, testQ, testA = vectorize_data(self.testData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size, self._profiles_mapping)
             n_test = len(testS)
             print("Testing Size", n_test)
-            test_preds=self.batch_predict(testP, testS,testQ,n_test)
+            test_preds=self.model.batch_predict(testP, testS,testQ)
             test_acc = metrics.accuracy_score(test_preds, testA)
             print("Testing Accuracy:", test_acc)
             
             # print(testA)
             # for pred in test_preds:
             #     print(pred, self.indx2candid[pred])
-
-    def batch_predict(self,P,S,Q,n):
-        storie_sizes = [s.shape for s in S]
-        df = pd.DataFrame(dict(P=P, storie_size=storie_sizes))
-        df['predictions'] = pd.Series()
-
-        while True:
-            not_yet_predicted = df.predictions.isnull()
-            if not not_yet_predicted.any():
-                break
-
-            p = random.choice(df[not_yet_predicted].P.unique())
-
-            first_story_size = df[not_yet_predicted & (df.P == p)].storie_size.iloc[0]
-            prediction_slice = df[not_yet_predicted & (df.P == p) & (df.storie_size == first_story_size)].iloc[:self.batch_size]
-
-            s = np.array([S[i] for i in prediction_slice.index])#, dtype=np.int64)
-            q = np.array([Q[i] for i in prediction_slice.index])#, dtype=np.int64)
-
-            preds = self.model._predict_single_profile(p, s, q)
-
-            for i, idx in enumerate(prediction_slice.index):
-                df.loc[idx, 'predictions'] = preds[i]
-
-        return df.predictions.values
 
     def close_session(self):
         self.sess.close()
