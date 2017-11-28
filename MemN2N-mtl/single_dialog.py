@@ -13,8 +13,6 @@ import tensorflow as tf
 import numpy as np
 import os
 import pickle
-import pandas as pd
-import random
 
 tf.flags.DEFINE_float("learning_rate", 0.001, "Learning rate for Adam Optimizer.")
 tf.flags.DEFINE_float("epsilon", 1e-8, "Epsilon value for Adam Optimizer.")
@@ -143,7 +141,7 @@ class ChatBot(object):
         max_story_size = max(map(len, (s for s, _, _ in data)))
         mean_story_size = int(np.mean([ len(s) for s, _, _ in data ]))
         self.sentence_size = max(map(len, chain.from_iterable(s for s, _, _ in data)))
-        self.candidate_sentence_size=max(map(len,candidates))
+        self.candidate_sentence_size = max(map(len,candidates))
         query_size = max(map(len, (q for _, q, _ in data)))
         self.memory_size = min(self.memory_size, max_story_size)
         self.vocab_size = len(self.word_idx) + 1 # +1 for nil word
@@ -214,7 +212,7 @@ class ChatBot(object):
                 if val_acc > best_validation_accuracy:
                     best_validation_accuracy=val_acc
                     self.saver.save(self.sess,self.model_dir+'model.ckpt',global_step=t)
-                    
+
     def test(self):
         ckpt = tf.train.get_checkpoint_state(self.model_dir)
         if ckpt and ckpt.model_checkpoint_path:

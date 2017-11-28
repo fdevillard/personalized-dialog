@@ -276,7 +276,7 @@ class MemN2NDialog(object):
             model = model_inference_helper(**p_vars)
 
             if self._verbose:
-                model = tf.Print(model, [self._profile], message="Profile {}".format(p))
+                model = tf.Print(model, [profile], message="Profile {}".format(p))
 
             return model
 
@@ -286,7 +286,7 @@ class MemN2NDialog(object):
                 shared_result = model_inference_helper(**model_vars)
 
             def construct_case_element(p):
-                return (tf.equal(self._profile, p), lambda: construct_model_for_profile(p))
+                return (tf.equal(profile, p), lambda: construct_model_for_profile(p))
 
             clean_case = [construct_case_element(p) for p in self._profile_idx_set]
 
@@ -321,11 +321,22 @@ class MemN2NDialog(object):
         Args:
             f: function to dispatch. Must take as first argument the profile type, and then
                as many arguments as present in `args` (in the same order)
+            batch_size: maximum size of the arguments' lists
             profiles: array-like that contains profiles for elements in the batch
+            stories: array-like that contains all the stories (will be used to avoid issues where
+                     the memory size is different)
             args: values to dispatch (must be of same shape then `profiles`, and have at least one element)
 
         Returns:
-        The list of results (corresponding to each profiles)
+        The list of results with the same index as `profiles`
+
+        Possible improvement:
+            - Might be worth to remove the `storie_sizes` computation. This computation comes
+              because the parsed data do not have the same story size (there is max size, but
+              if the history is shorter, then this size is kept).
+              This works sequentially because `data_utils.vectorize_data` takes the minimum
+              with respect of the whole batch size (not sure if this was done only to reduce
+              slightly the memory footprint)
         """
         assert len(args) > 0, "Must specify at least one argument for f"
 
