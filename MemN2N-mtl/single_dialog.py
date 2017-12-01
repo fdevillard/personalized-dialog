@@ -13,6 +13,8 @@ import tensorflow as tf
 import numpy as np
 import os
 import pickle
+import pprint
+import glob
 
 tf.flags.DEFINE_float("learning_rate", 0.001, "Learning rate for Adam Optimizer.")
 tf.flags.DEFINE_float("epsilon", 1e-8, "Epsilon value for Adam Optimizer.")
@@ -34,6 +36,7 @@ tf.flags.DEFINE_boolean('save_vocab', False, 'if True, saves vocabulary')
 tf.flags.DEFINE_boolean('load_vocab', False, 'if True, loads vocabulary instead of building it')
 tf.flags.DEFINE_boolean('verbose', False, "if True, print different debugging messages")
 tf.flags.DEFINE_float('alpha', .5, "Value of the alpha parameter, used to prefer one part of the model")
+tf.flags.DEFINE_string('experiment', None, "Choose if any experiment to do")
 FLAGS = tf.flags.FLAGS
 print("Started Task:", FLAGS.task_id)
 
@@ -56,9 +59,11 @@ class ChatBot(object):
                  epochs=200,
                  embedding_size=20,
                  alpha=.5,
-                 save_vocab=False,
-                 load_vocab=False,
-                 verbose=False):
+                 save_vocab=None,
+                 load_vocab=None,
+                 verbose=False,
+                 load_profiles=None,
+                 save_profiles=None):
 
         self.data_dir=data_dir
         self.task_id=task_id
@@ -82,8 +87,8 @@ class ChatBot(object):
         self.alpha = alpha
 
         # Loading possible answers
-        candidates,self.candid2indx = load_candidates(self.data_dir, self.task_id)
-        self.n_cand = len(candidates)
+        self.candidates, self.candid2indx = load_candidates(self.data_dir, self.task_id)
+        self.n_cand = len(self.candidates)
         print("Candidate Size", self.n_cand)
         self.indx2candid= dict((self.candid2indx[key],key) for key in self.candid2indx)
 
@@ -92,19 +97,23 @@ class ChatBot(object):
         data = self.trainData + self.testData + self.valData
 
         # Find profiles types
-        self._profiles_mapping = generate_profile_encoding(self.trainData)
-        test_profiles = generate_profile_encoding(self.testData)
-        validation_profiles = generate_profile_encoding(self.valData)
-        assert self._profiles_mapping == test_profiles
-        assert self._profiles_mapping == validation_profiles
+        if load_profiles:
+            with open(load_profiles, 'rb') as f:
+                self._profiles_mapping = pickle.load(f)
+        else:
+            self._profiles_mapping = generate_profile_encoding(self.trainData)
+            if save_profiles:
+                with open(save_profiles, 'wb') as f:
+                    pickle.dump(self._profiles_mapping, f)
+
         profiles_idx_set = set(self._profiles_mapping.values())
 
         print("Profiles:", self._profiles_mapping)
 
         # Vocabulary
-        self.build_vocab(data,candidates,self.save_vocab,self.load_vocab)
-        # self.candidates_vec=vectorize_candidates_sparse(candidates,self.word_idx)
-        self.candidates_vec=vectorize_candidates(candidates,self.word_idx,self.candidate_sentence_size)
+        self.build_vocab(data,self.candidates,self.save_vocab,self.load_vocab)
+        # self.candidates_vec=vectorize_candidates_sparse(self.candidates,self.word_idx)
+        self.candidates_vec=vectorize_candidates(self.candidates,self.word_idx,self.candidate_sentence_size)
 
         # Model initialisation
         optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=self.epsilon)
@@ -128,15 +137,16 @@ class ChatBot(object):
         # self.summary_writer = tf.train.SummaryWriter(self.model.root_dir, self.model.graph_output.graph)
         self.summary_writer = tf.summary.FileWriter(self.model.root_dir, self.model.graph_output.graph)
         
-    def build_vocab(self,data,candidates,save=False,load=False):
-        if load:
-            vocab_file = open('vocab.obj', 'rb')
-            vocab = pickle.load(vocab_file)
+    def build_vocab(self,data,candidates,save=False,load_file=None):
+        if load_file:
+            with open(load_file, 'rb') as vocab_file:
+                vocab = pickle.load(vocab_file)
         else:
             vocab = reduce(lambda x, y: x | y, (set(list(chain.from_iterable(s)) + q) for s, q, a in data))
             vocab |= reduce(lambda x,y: x|y, (set(candidate) for candidate in candidates) )
             vocab=sorted(vocab)
-        
+
+        self.vocabulary = vocab
         self.word_idx = dict((c, i + 1) for i, c in enumerate(vocab))
         max_story_size = max(map(len, (s for s, _, _ in data)))
         mean_story_size = int(np.mean([ len(s) for s, _, _ in data ]))
@@ -155,7 +165,7 @@ class ChatBot(object):
         print("Average story length", mean_story_size)
 
         if save:
-            with open('vocab.obj', 'wb') as vocab_file:
+            with open(save, 'wb') as vocab_file:
                 pickle.dump(vocab, vocab_file)
         
     def train(self):
@@ -211,7 +221,19 @@ class ChatBot(object):
                 
                 if val_acc > best_validation_accuracy:
                     best_validation_accuracy=val_acc
-                    self.saver.save(self.sess,self.model_dir+'model.ckpt',global_step=t)
+                    self.saver.save(self.sess, os.path.join(self.model_dir, "model.ckpt"),global_step=t)
+
+    @classmethod
+    def restore_model(cls, **kwargs):
+        ckpt = tf.train.get_checkpoint_state(kwargs['model_dir'])
+
+        if ckpt and ckpt.model_checkpoint_path:
+            created_cb = cls(**kwargs)
+            created_cb.saver.restore(created_cb.sess, ckpt.model_checkpoint_path)
+        else:
+            raise ValueError("`model_dir` does not exist or was not created correctly")
+
+        return created_cb
 
     def test(self):
         ckpt = tf.train.get_checkpoint_state(self.model_dir)
@@ -233,8 +255,60 @@ class ChatBot(object):
             # for pred in test_preds:
             #     print(pred, self.indx2candid[pred])
 
+    def test_accuracy(self, test_data_dir):
+        _, testData, _ = load_dialog_task(test_data_dir, self.task_id, self.candid2indx, self.OOV)
+        testP, testS, testQ, testA = vectorize_data(testData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size, self._profiles_mapping)
+        test_preds = self.model.batch_predict(testP, testS, testQ)
+        test_acc = metrics.accuracy_score(test_preds, testA)
+
+        return test_acc
+
     def close_session(self):
         self.sess.close()
+
+
+def run_experiment(experiment_path, test_dirs, **kwargs):
+    """
+    Helper function for running experiment.
+
+    Args:
+        - experiment_path: directory for the experiment (created if not exist)
+        - test_dirs: list of directories for to take the testing data from, and evaluating it
+        - kwargs can also contains any other argument that will be given to ChatBot.
+    """
+    os.makedirs(experiment_path, exist_ok=True)
+
+    model_dir = experiment_path
+    vocabulary = os.path.join(experiment_path, 'vocabulary.obj')
+    profiles = os.path.join(experiment_path, 'profiles.obj')
+
+    kwargs['model_dir'] = model_dir
+
+    kwargs_load = kwargs.copy()
+    kwargs_load['load_vocab'] = vocabulary
+    kwargs_load['load_profiles'] = profiles
+
+    kwargs_save = kwargs.copy()
+    kwargs_save['save_vocab'] = vocabulary
+    kwargs_save['save_profiles'] = profiles
+
+    try:
+        chatbot = ChatBot.restore_model(**kwargs_load)
+    except Exception as err:
+        print('Did not load, generate:', err)
+
+        with open(os.path.join(experiment_path, 'attributes.log'), 'w') as f:
+            pprint.pprint(kwargs, stream=f, indent=4)
+
+        tf.reset_default_graph()
+        chatbot = ChatBot(**kwargs_save)
+        chatbot.train()
+
+    for test_dir in test_dirs:
+        acc = chatbot.test_accuracy(test_dir)
+        print('Accuracy for {}: {:.5%}'.format(test_dir, acc))
+
+    chatbot.close_session()
 
 
 if __name__ =='__main__':
@@ -242,23 +316,9 @@ if __name__ =='__main__':
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
 
-    chatbot=ChatBot(FLAGS.data_dir,
-                    model_dir,
-                    FLAGS.task_id,
-                    OOV=FLAGS.OOV,
-                    isInteractive=FLAGS.interactive,
-                    batch_size=FLAGS.batch_size,
-                    memory_size=FLAGS.memory_size,
-                    save_vocab=FLAGS.save_vocab,
-                    load_vocab=FLAGS.load_vocab,
-                    epochs=FLAGS.epochs,
-                    evaluation_interval=FLAGS.evaluation_interval,
-                    verbose=FLAGS.verbose,
-                    alpha=FLAGS.alpha)
 
     if FLAGS.interactive:
         from IPython import embed
-        import pprint
         pp = pprint.PrettyPrinter(indent=4)
 
 
@@ -277,12 +337,39 @@ if __name__ =='__main__':
 
     else:
         # chatbot.run()
-        import time
-        start_time = time.time()
-        if FLAGS.train:
-            chatbot.train()
-        else:
-            chatbot.test()
-        print('Duration:', (time.time() - start_time))
+        if FLAGS.experiment == "test":
+            run_experiment('experiments/test',
+                           ['../data/personalized-dialog-dataset/split-by-profile/female_elderly'],
+                           data_dir='../data/personalized-dialog-dataset//small',
+                           task_id=5,
+                           epochs=1)
+        elif FLAGS.experiment == "full_profile":
+            test_dirs = glob.glob('../data/personalized-dialog-dataset/split-by-profile/*')
+            test_dirs = list(test_dirs)
 
-        chatbot.close_session()
+            run_experiment('experiments/full_profile',
+                           test_dirs,
+                           data_dir='../data/personalized-dialog-dataset//small',
+                           task_id=5,
+                           epochs=200)
+        else:
+            chatbot=ChatBot(FLAGS.data_dir,
+                            model_dir,
+                            FLAGS.task_id,
+                            OOV=FLAGS.OOV,
+                            isInteractive=FLAGS.interactive,
+                            batch_size=FLAGS.batch_size,
+                            memory_size=FLAGS.memory_size,
+                            save_vocab=FLAGS.save_vocab,
+                            load_vocab=FLAGS.load_vocab,
+                            epochs=FLAGS.epochs,
+                            evaluation_interval=FLAGS.evaluation_interval,
+                            verbose=FLAGS.verbose,
+                            alpha=FLAGS.alpha)
+
+            if FLAGS.train:
+                chatbot.train()
+            else:
+                chatbot.test()
+
+            chatbot.close_session()

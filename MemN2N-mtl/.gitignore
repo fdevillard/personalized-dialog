@@ -2,6 +2,7 @@ runs/
 runs.tar.gz
 task_?_summary_output_*/
 tmp/*
+experiments/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
