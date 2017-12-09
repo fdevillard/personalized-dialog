@@ -318,21 +318,12 @@ if __name__ =='__main__':
 
 
     if FLAGS.interactive:
+        test_dirs = glob.glob('../data/personalized-dialog-dataset/split-by-profile/*')
+        test_dirs = list(test_dirs)
+        small_train_dataset = '../data/personalized-dialog-dataset/small'
+
         from IPython import embed
         pp = pprint.PrettyPrinter(indent=4)
-
-
-        self = chatbot
-        trainP, trainS, trainQ, trainA = vectorize_data(self.trainData, IdenticalWordIdx(self.word_idx), self.sentence_size, self.batch_size,
-                                                        self.n_cand, self.memory_size, self._profiles_mapping)
-
-        train = [trainP, trainS, trainQ, trainA]
-
-        testP, testS, testQ, testA = vectorize_data(self.testData, IdenticalWordIdx(self.word_idx), self.sentence_size, self.batch_size,
-                                                    self.n_cand, self.memory_size, self._profiles_mapping)
-
-        test = [testP, testS, testQ, testA]
-
         embed()
 
     else:
@@ -340,7 +331,7 @@ if __name__ =='__main__':
         if FLAGS.experiment == "test":
             run_experiment('experiments/test',
                            ['../data/personalized-dialog-dataset/split-by-profile/female_elderly'],
-                           data_dir='../data/personalized-dialog-dataset//small',
+                           data_dir='../data/personalized-dialog-dataset/small',
                            task_id=5,
                            epochs=1)
         elif FLAGS.experiment == "full_profile":
@@ -349,7 +340,7 @@ if __name__ =='__main__':
 
             run_experiment('experiments/full_profile',
                            test_dirs,
-                           data_dir='../data/personalized-dialog-dataset//small',
+                           data_dir='../data/personalized-dialog-dataset/small',
                            task_id=5,
                            epochs=200)
         else:

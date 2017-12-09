@@ -246,11 +246,33 @@ class IdenticalWordIdx:
         word_idx (set|dict): Used to test if the word in known or not, but the word
                              itself will be returned by `__getitem__`.
     """
-    def __init__(self, word_idx):
+    def __init__(self, word_idx=None):
         self.word_idx = word_idx
 
     def __contains__(self, item):
-        return item in self.word_idx
+        return item in self.word_idx if self.word_idx is not None else True
 
     def __getitem__(self, item):
         return item
+
+class OnetimeCandidateDict:
+    def __init__(self):
+        self.candidat_dict = dict()
+
+    def __contains__(self, item):
+        return True
+
+    def __getitem__(self, item):
+        if item in self.candidat_dict:
+            return self.candidat_dict[item]
+
+        value = len(self.candidat_dict)
+        self.candidat_dict[item] = value
+
+        return value
+
+def compute_data_size(dirpath, task_id=5, oov=False):
+    data = load_dialog_task(dirpath, task_id, OnetimeCandidateDict(), oov)
+    #vectorized_p = map(lambda d: vectorize_data(d, IdenticalWordIdx(), 100, 32, -1, 20, OnetimeCandidateDict())[0], data)
+
+    return tuple(map(len, data))
