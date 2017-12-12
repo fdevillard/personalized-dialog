@@ -276,3 +276,32 @@ def compute_data_size(dirpath, task_id=5, oov=False):
     #vectorized_p = map(lambda d: vectorize_data(d, IdenticalWordIdx(), 100, 32, -1, 20, OnetimeCandidateDict())[0], data)
 
     return tuple(map(len, data))
+
+
+def compute_data_size_recursively(base_dir):
+    """
+    If base_dir has internal directories, recusrive call on them. Otherwise,
+    call `compute_data_size` and print it. Does nothing if base_dir is not
+    a directory.
+    """
+
+    if not os.path.isdir(base_dir):
+        return
+
+    subdirs = {p for p in map(lambda s: os.path.join(base_dir, s), os.listdir(base_dir)) if os.path.isdir(p)}
+
+    if len(subdirs) == 0:
+        try:
+            dss = compute_data_size(base_dir)
+        except IndexError:
+            print('Ignored:', base_dir)
+            return
+
+        detail = 'train: {}, val: {}, test: {}'.format(*dss)
+
+        print('{}: {}'.format(base_dir, detail))
+
+    else:
+        for p in subdirs:
+            compute_data_size_recursively(p)
+
