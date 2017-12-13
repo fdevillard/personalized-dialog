@@ -68,7 +68,12 @@ class chatBot(object):
         # self.candidates_vec=vectorize_candidates_sparse(candidates,self.word_idx)
         self.candidates_vec=vectorize_candidates(candidates,self.word_idx,self.candidate_sentence_size)
         optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=self.epsilon)
-        self.sess = tf.Session()
+
+        config = tf.ConfigProto(
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
+        )
+        self.sess = tf.Session(config=config)
+
         self.model = MemN2NDialog(self.batch_size, self.vocab_size, self.n_cand, self.sentence_size, self.embedding_size, self.candidates_vec, session=self.sess,
                            hops=self.hops, max_grad_norm=self.max_grad_norm, optimizer=optimizer, task_id=task_id)
         self.saver = tf.train.Saver(max_to_keep=50)
