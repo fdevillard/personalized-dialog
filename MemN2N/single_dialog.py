@@ -246,7 +246,7 @@ if __name__ =='__main__':
             train_dir,
             model_dir,
             5,
-            epochs=1,   # TODO Change to 200
+            epochs=200,
             OOV=False,
             isInteractive=False,
             batch_size=FLAGS.batch_size,
