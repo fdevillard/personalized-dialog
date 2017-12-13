@@ -117,7 +117,12 @@ class ChatBot(object):
 
         # Model initialisation
         optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=self.epsilon)
-        self.sess=tf.Session()
+
+        config = tf.ConfigProto(
+            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
+        )
+        self.sess = tf.Session(config=config)
+
         self.model = MemN2NDialog(self.batch_size,
                                   self.vocab_size,
                                   self.n_cand,
