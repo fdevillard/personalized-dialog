@@ -68,7 +68,7 @@ class chatBot(object):
         # self.candidates_vec=vectorize_candidates_sparse(candidates,self.word_idx)
         self.candidates_vec=vectorize_candidates(candidates,self.word_idx,self.candidate_sentence_size)
         optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=self.epsilon)
-        self.sess=tf.Session()
+        self.sess = tf.Session()
         self.model = MemN2NDialog(self.batch_size, self.vocab_size, self.n_cand, self.sentence_size, self.embedding_size, self.candidates_vec, session=self.sess,
                            hops=self.hops, max_grad_norm=self.max_grad_norm, optimizer=optimizer, task_id=task_id)
         self.saver = tf.train.Saver(max_to_keep=50)
@@ -234,19 +234,19 @@ class chatBot(object):
         self.sess.close()
 
 if __name__ =='__main__':
-    model_dir="task"+str(FLAGS.task_id)+"_"+FLAGS.model_dir
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
     # chatbot.run()
 
     if FLAGS.experiment == 'split-by-profile':
         print('Running experiment:', FLAGS.experiment)
+        model_dir = 'experiment_split-by-profile/'
+        os.makedirs(model_dir, exist_ok=True)
+
         train_dir = '../data/personalized-dialog-dataset/merged-from-split-by-profile/'
         chatbot = chatBot(
             train_dir,
             model_dir,
             5,
-            epochs=1,
+            epochs=1,   # TODO Change to 200
             OOV=False,
             isInteractive=False,
             batch_size=FLAGS.batch_size,
@@ -260,17 +260,23 @@ if __name__ =='__main__':
             print('Load from:', model_dir)
             chatbot.saver.restore(chatbot.sess, ckpt.model_checkpoint_path)
         else:
-            print('Train the model on:', )
+            print('Train the model on:', train_dir)
             chatbot.train()
 
         test_dirs = [d for d in glob.glob('../data/personalized-dialog-dataset/split-by-profile/*') if os.path.isdir(d)]
+        print('Start testings...')
         for d in test_dirs:
             chatbot.test_ds(d)
 
     else:
+        model_dir="task"+str(FLAGS.task_id)+"_"+FLAGS.model_dir
+        if not os.path.exists(model_dir):
+            os.makedirs(model_dir)
+
         chatbot=chatBot(FLAGS.data_dir,model_dir,FLAGS.task_id,epochs=FLAGS.epochs,OOV=FLAGS.OOV,isInteractive=FLAGS.interactive,batch_size=FLAGS.batch_size,memory_size=FLAGS.memory_size,save_vocab=FLAGS.save_vocab,load_vocab=FLAGS.load_vocab)
         if FLAGS.train:
             chatbot.train()
         else:
             chatbot.test()
+
     chatbot.close_session()

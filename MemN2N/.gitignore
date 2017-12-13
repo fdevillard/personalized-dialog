@@ -1,6 +1,7 @@
 runs/
 runs.tar.gz
 task_*
+experiment_split-by-profile/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
