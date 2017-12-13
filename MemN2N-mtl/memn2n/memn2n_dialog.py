@@ -20,9 +20,9 @@ def zero_nil_slot(t, name=None):
     with tf.name_scope(name, "zero_nil_slot", [t]) as name:
         t = tf.convert_to_tensor(t, name="t")
         s = tf.shape(t)[1]
-        z = tf.zeros(tf.pack([1, s]))
+        z = tf.zeros([1, s])
         # z = tf.zeros([1, s])
-        return tf.concat(0, [z, tf.slice(t, [1, 0], [-1, -1])], name=name)
+        return tf.concat([z, tf.slice(t, [1, 0], [-1, -1])], 0, name=name)
 
 
 def add_gradient_noise(t, stddev=1e-3, name=None):
@@ -136,7 +136,7 @@ class MemN2NDialog(object):
         
         # cross entropy
         logits = self._inference(self._profile, self._stories, self._queries) # (batch_size, candidates_size)
-        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits, self._answers, name="cross_entropy")
+        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=self._answers, name="cross_entropy")
         cross_entropy_sum = tf.reduce_sum(cross_entropy, name="cross_entropy_sum")
 
         # loss op
@@ -192,12 +192,12 @@ class MemN2NDialog(object):
     def _build_vars(self):
         def build_var_helper():
             nil_word_slot = tf.zeros([1, self._embedding_size])
-            A = tf.concat(0, [ nil_word_slot, self._init([self._vocab_size-1, self._embedding_size]) ])
+            A = tf.concat([ nil_word_slot, self._init([self._vocab_size-1, self._embedding_size]) ], 0)
             A = tf.get_variable('A', initializer=A)
 
             H = tf.get_variable("H", shape=[self._embedding_size, self._embedding_size], initializer=self._init)
 
-            W = tf.concat(0, [ nil_word_slot, self._init([self._vocab_size-1, self._embedding_size]) ])
+            W = tf.concat([ nil_word_slot, self._init([self._vocab_size-1, self._embedding_size]) ], 0)
             W = tf.get_variable("W", initializer=W)
 
             return {

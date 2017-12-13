@@ -300,7 +300,6 @@ def compute_data_size_recursively(base_dir):
         detail = 'train: {}, val: {}, test: {}'.format(*dss)
 
         print('{}: {}'.format(base_dir, detail))
-
     else:
         for p in subdirs:
             compute_data_size_recursively(p)
