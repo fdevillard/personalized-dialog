@@ -47,7 +47,7 @@ class MemN2NDialog(object):
         nonlin=None,
         initializer=tf.random_normal_initializer(stddev=0.1),
         optimizer=tf.train.AdamOptimizer(learning_rate=1e-2),
-        session=tf.Session(),
+        session=None,
         name='MemN2N',
                  task_id=1):
         """Creates an End-To-End Memory Network
@@ -146,7 +146,7 @@ class MemN2NDialog(object):
 
         # init_op = tf.initialize_all_variables()
         init_op = tf.global_variables_initializer()
-        self._sess = session
+        self._sess = session if session is not None else tf.Session()
         self._sess.run(init_op)
 
 
