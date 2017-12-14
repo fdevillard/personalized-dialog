@@ -343,6 +343,17 @@ if __name__ =='__main__':
                            data_dir='../data/personalized-dialog-dataset/small',
                            task_id=5,
                            epochs=200)
+
+        elif FLAGS.experiment == 'split-by-profile':
+            test_dirs = glob.glob('../data/personalized-dialog-dataset/split-by-profile/*')
+            test_dirs = list(test_dirs)
+
+            run_experiment('experiments/split_by_profile',
+                           test_dirs,
+                           data_dir='../data/personalized-dialog-dataset/merged-from-split-by-profile',
+                           task_id=5,
+                           epochs=200)
+
         else:
             chatbot=ChatBot(FLAGS.data_dir,
                             model_dir,
