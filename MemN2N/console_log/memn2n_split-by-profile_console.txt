@@ -1,0 +1,362 @@
+flo@iccluster026:~/personalized-dialog/MemN2N$ python3 single_dialog.py --experiment split-by-profile
+2017-12-13 14:51:43.618602: I tensorflow/core/platform/cpu_feature_guard.cc:137] Your CPU supports instructions that this TensorFlow binary was not compil
+ed to use: SSE4.1 SSE4.2 AVX AVX2 FMA
+2017-12-13 14:51:45.286084: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1030] Found device 0 with properties: 
+name: GeForce GTX TITAN X major: 5 minor: 2 memoryClockRate(GHz): 1.076
+pciBusID: 0000:04:00.0
+totalMemory: 11.92GiB freeMemory: 11.81GiB
+2017-12-13 14:51:45.667763: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1030] Found device 1 with properties: 
+name: GeForce GTX TITAN X major: 5 minor: 2 memoryClockRate(GHz): 1.076
+pciBusID: 0000:83:00.0
+totalMemory: 11.92GiB freeMemory: 11.81GiB
+2017-12-13 14:51:45.667866: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Device peer to peer matrix
+2017-12-13 14:51:45.667898: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1051] DMA: 0 1 
+2017-12-13 14:51:45.667907: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1061] 0:   Y N 
+2017-12-13 14:51:45.667913: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1061] 1:   N Y 
+2017-12-13 14:51:45.667930: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1120] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeFor
+ce GTX TITAN X, pci bus id: 0000:04:00.0, compute capability: 5.2)
+2017-12-13 14:51:45.667938: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1120] Creating TensorFlow device (/device:GPU:1) -> (device: 1, name: GeFor
+ce GTX TITAN X, pci bus id: 0000:83:00.0, compute capability: 5.2)
+Started Task: 1
+Running experiment: split-by-profile
+/usr/lib/python3.5/re.py:203: FutureWarning: split() requires a non-empty pattern match.
+  return _compile(pattern, flags).split(string, maxsplit)
+Candidate Size 43863
+vocab size: 14820
+Longest sentence length 19
+Longest candidate sentence length 13
+Longest story length 223
+Average story length 62
+2017-12-13 14:53:22.530452: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1120] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeFor
+ce GTX TITAN X, pci bus id: 0000:04:00.0, compute capability: 5.2)
+2017-12-13 14:53:22.530517: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1120] Creating TensorFlow device (/device:GPU:1) -> (device: 1, name: GeFo$
+ce GTX TITAN X, pci bus id: 0000:83:00.0, compute capability: 5.2)
+Train the model on: ../data/personalized-dialog-dataset/merged-from-split-by-profile/
+Training Size 121878
+Validation Size 121468
+Epoch 1
+Epoch 2
+Epoch 3
+Epoch 4
+Epoch 5
+Epoch 6
+Epoch 7
+Epoch 8
+Epoch 9
+Epoch 10
+-----------------------
+Epoch 10
+Total Cost: 65157.5337704
+Training Accuracy: 0.824668931226
+Validation Accuracy: 0.795188856324
+-----------------------
+Epoch 11
+Epoch 12
+Epoch 13
+Epoch 14
+Epoch 15
+Epoch 16
+Epoch 17
+Epoch 18
+Epoch 19
+Epoch 20
+-----------------------
+Epoch 20
+Total Cost: 37080.4694663
+Training Accuracy: 0.909458638967
+Validation Accuracy: 0.863272631475
+-----------------------
+Epoch 21
+Epoch 22
+Epoch 23
+Epoch 24
+Epoch 25
+Epoch 26
+Epoch 27
+Epoch 28
+Epoch 29
+Epoch 30
+-----------------------
+Epoch 30
+Total Cost: 28190.0253024
+Training Accuracy: 0.932506276769
+Validation Accuracy: 0.870904271084
+-----------------------
+Epoch 31
+Epoch 32
+Epoch 33
+Epoch 34
+Epoch 35
+Epoch 36
+Epoch 37
+Epoch 38
+Epoch 39
+Epoch 40
+-----------------------
+Epoch 40
+Total Cost: 22506.0178287
+Training Accuracy: 0.954692397315
+Validation Accuracy: 0.885319590345
+-----------------------
+Epoch 41
+Epoch 42
+Epoch 43
+Epoch 44
+Epoch 45
+Epoch 46
+Epoch 47
+Epoch 48
+Epoch 49
+Epoch 50
+-----------------------
+Epoch 50
+Total Cost: 20115.9882607
+Training Accuracy: 0.961305567863
+Validation Accuracy: 0.888110448842
+-----------------------
+Epoch 51
+Epoch 52
+Epoch 53
+Epoch 54
+Epoch 55
+Epoch 56
+Epoch 57
+Epoch 58
+Epoch 59
+Epoch 60
+-----------------------
+Epoch 60
+Total Cost: 19281.8690235
+Training Accuracy: 0.965014194522
+Validation Accuracy: 0.887550630619
+-----------------------
+Epoch 61
+Epoch 62
+Epoch 63
+Epoch 64
+Epoch 65
+Epoch 66
+Epoch 67
+Epoch 68
+Epoch 69
+Epoch 70
+-----------------------
+Epoch 70
+Total Cost: 17041.1010964
+Training Accuracy: 0.970486880323
+Validation Accuracy: 0.890325023875
+-----------------------
+Epoch 71
+Epoch 72
+Epoch 73
+Epoch 74
+Epoch 75
+Epoch 76
+Epoch 77
+Epoch 78
+Epoch 79
+Epoch 80
+-----------------------
+Epoch 80
+Total Cost: 16060.0918178
+Training Accuracy: 0.969453059617
+Validation Accuracy: 0.885698290908
+-----------------------
+Epoch 81
+Epoch 82
+Epoch 83
+Epoch 84
+Epoch 85
+Epoch 86
+Epoch 87
+Epoch 88
+Epoch 89
+Epoch 90
+-----------------------
+Epoch 90
+Total Cost: 15369.6517103
+Training Accuracy: 0.972185300054
+Validation Accuracy: 0.888275101261
+-----------------------
+Epoch 91
+Epoch 92
+Epoch 93
+Epoch 94
+Epoch 95
+Epoch 96
+Epoch 97
+Epoch 98
+Epoch 99
+Epoch 100
+-----------------------
+Epoch 100
+Total Cost: 15088.6467979
+Training Accuracy: 0.974843696155
+Validation Accuracy: 0.889592320611
+-----------------------
+Epoch 101
+Epoch 102
+Epoch 103
+Epoch 104
+Epoch 105
+Epoch 106
+Epoch 107
+Epoch 108
+Epoch 109
+Epoch 110
+-----------------------
+Epoch 110
+Total Cost: 14560.2784786
+Training Accuracy: 0.978412839069
+Validation Accuracy: 0.892062106892
+-----------------------
+Epoch 111
+Epoch 112
+Epoch 113
+Epoch 114
+Epoch 115
+Epoch 116
+Epoch 117
+Epoch 118
+Epoch 119
+Epoch 120
+-----------------------
+Epoch 120
+Total Cost: 13842.0042776
+Training Accuracy: 0.978330789806
+Validation Accuracy: 0.891148285968
+-----------------------
+Epoch 121
+Epoch 122
+Epoch 123
+Epoch 124
+Epoch 125
+Epoch 126
+Epoch 127
+Epoch 128
+Epoch 129
+Epoch 130
+-----------------------
+Epoch 130
+Total Cost: 12920.0251137
+Training Accuracy: 0.979446659775
+Validation Accuracy: 0.891288240524
+-----------------------
+Epoch 131
+Epoch 132
+Epoch 133
+Epoch 134
+Epoch 135
+Epoch 136
+Epoch 137
+Epoch 138
+Epoch 139
+Epoch 140
+-----------------------
+Epoch 140
+Total Cost: 13105.7249875
+Training Accuracy: 0.982498892335
+Validation Accuracy: 0.896853492278
+-----------------------
+Epoch 141
+Epoch 142
+Epoch 143
+Epoch 144
+Epoch 145
+Epoch 147
+Epoch 148
+Epoch 149
+Epoch 150
+-----------------------
+Epoch 150
+Total Cost: 12603.7915269
+Training Accuracy: 0.980595349448
+Validation Accuracy: 0.894029703296
+-----------------------
+Epoch 151
+Epoch 152
+Epoch 153
+Epoch 154
+Epoch 155
+Epoch 156
+Epoch 157
+Epoch 158
+Epoch 159
+Epoch 160
+-----------------------
+Epoch 160
+Total Cost: 13000.2347101
+Training Accuracy: 0.983352204664
+Validation Accuracy: 0.896812329173
+-----------------------
+Epoch 161
+Epoch 162
+Epoch 163
+Epoch 164
+Epoch 165
+Epoch 166
+Epoch 167
+Epoch 168
+Epoch 169
+Epoch 170
+-----------------------
+Epoch 170
+Total Cost: 13629.3368281
+Training Accuracy: 0.980299972103
+Validation Accuracy: 0.895248131195
+-----------------------
+Epoch 171
+Epoch 172
+Epoch 173
+Epoch 174
+Epoch 175
+Epoch 176
+Epoch 177
+Epoch 178
+Epoch 179
+Epoch 180
+-----------------------
+Epoch 180
+Total Cost: 14575.8189274
+Training Accuracy: 0.982646581007
+Validation Accuracy: 0.899364441664
+-----------------------
+Epoch 181
+Epoch 182
+Epoch 183
+Epoch 184
+Epoch 185
+Epoch 186
+Epoch 187
+Epoch 188
+Epoch 189
+Epoch 190
+-----------------------
+Epoch 190
+Total Cost: 12757.9603244
+Training Accuracy: 0.9850834441
+Validation Accuracy: 0.901579016696
+-----------------------
+Epoch 191
+Epoch 192
+Epoch 193
+Epoch 194
+Epoch 195
+Epoch 196
+Epoch 197
+Epoch 198
+Epoch 199
+Epoch 200
+-----------------------
+Epoch 200
+Total Cost: 13337.2805444
+Training Accuracy: 0.98130917803
+Validation Accuracy: 0.897964896104
+-----------------------
+Start testings...
+../data/personalized-dialog-dataset/split-by-profile/male_young: 89.85%
+../data/personalized-dialog-dataset/split-by-profile/male_middle-aged: 89.72%
+../data/personalized-dialog-dataset/split-by-profile/male_elderly: 89.62%
+../data/personalized-dialog-dataset/split-by-profile/female_young: 89.66%
+../data/personalized-dialog-dataset/split-by-profile/female_elderly: 89.59%
+../data/personalized-dialog-dataset/split-by-profile/female_middle-aged: 89.60%
