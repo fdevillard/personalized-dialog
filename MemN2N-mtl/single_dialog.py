@@ -119,7 +119,8 @@ class ChatBot(object):
         optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, epsilon=self.epsilon)
 
         config = tf.ConfigProto(
-            gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
+            #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
+            device_count={'GPU':0}
         )
         self.sess = tf.Session(config=config)
 
