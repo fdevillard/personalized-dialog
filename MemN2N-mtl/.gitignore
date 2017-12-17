@@ -3,6 +3,7 @@ runs.tar.gz
 task_?_summary_output_*/
 tmp/*
 experiments/*
+!experiments/split-by=profile/console_log.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

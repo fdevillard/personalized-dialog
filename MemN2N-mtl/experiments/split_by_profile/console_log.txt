@@ -1,0 +1,441 @@
+Script started on Thu 14 Dec 2017 07:04:31 PM CET
+[01;32mflo@iccluster026[00m:[01;34m~/personalized-dialog/MemN2N-mtl[00m$ tmux attach[K[2Psuhtop[1Ptop[1@htop[2Psutmux attach[K[K[01;32mflo@iccluster026[00m:[01;34m~/personalized-dialog/MemN2N-mtl[00m$ python3 single_dialog.py --experiment split-by-profile
+Started Task: 1
+Did not load, generate: `model_dir` does not exist or was not created correctly
+/usr/lib/python3.5/re.py:203: FutureWarning: split() requires a non-empty pattern match.
+  return _compile(pattern, flags).split(string, maxsplit)
+Candidate Size 43863
+Profiles: {('male', 'elderly'): 3, ('female', 'young'): 2, ('female', 'middle'): 1, ('male', 'young'): 5, ('male', 'middle'): 4, ('female', 'elderly'): 0}
+vocab size: 14820
+Longest sentence length 19
+Longest candidate sentence length 13
+Longest story length 223
+Average story length 62
+2017-12-14 19:06:21.897511: I tensorflow/core/platform/cpu_feature_guard.cc:137] Your CPU supports instructions that this TensorFlow binary was not compiled to use: SSE4.1 SSE4.2 AVX AVX2 FMA
+2017-12-14 19:06:23.699878: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1030] Found device 0 with properties: 
+name: GeForce GTX TITAN X major: 5 minor: 2 memoryClockRate(GHz): 1.076
+pciBusID: 0000:04:00.0
+totalMemory: 11.92GiB freeMemory: 11.81GiB
+2017-12-14 19:06:24.108813: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1030] Found device 1 with properties: 
+name: GeForce GTX TITAN X major: 5 minor: 2 memoryClockRate(GHz): 1.076
+pciBusID: 0000:83:00.0
+totalMemory: 11.92GiB freeMemory: 11.81GiB
+2017-12-14 19:06:24.108915: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Device peer to peer matrix
+2017-12-14 19:06:24.108972: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1051] DMA: 0 1 
+2017-12-14 19:06:24.108987: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1061] 0:   Y N 
+2017-12-14 19:06:24.108997: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1061] 1:   N Y 
+2017-12-14 19:06:24.109014: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1120] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeForce GTX TITAN X, pci bus id: 0000:04:00.0, compute capability: 5.2)
+2017-12-14 19:06:24.109026: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1120] Creating TensorFlow device (/device:GPU:1) -> (device: 1, name: GeForce GTX TITAN X, pci bus id: 0000:83:00.0, compute capability: 5.2)
+nil_vars: {'MemN2N/profilespecific/2/W:0', 'MemN2N/profilespecific/2/A:0', 'MemN2N/profilespecific/3/W:0', 'MemN2N/profilespecific/3/A:0', 'MemN2N/profilespecific/0/A:0', 'MemN2N/profilespecific/0/W:0', 'MemN2N/shared/A:0', 'MemN2N/profilespecific/4/W:0', 'MemN2N/shared/W:0', 'MemN2N/profilespecific/5/W:0', 'MemN2N/profilespecific/1/A:0', 'MemN2N/profilespecific/5/A:0', 'MemN2N/profilespecific/1/W:0', 'MemN2N/profilespecific/4/A:0'}
+alpha: 0.5
+/usr/local/lib/python3.5/dist-packages/tensorflow/python/ops/gradients_impl.py:96: UserWarning: Converting sparse IndexedSlices to a dense Tensor of unknown shape. This may consume a large amount of memory.
+  "Converting sparse IndexedSlices to a dense Tensor of unknown shape. "
+Training Size 121878
+Validation Size 121468
+Number of epochs: 200
+Epoch 1
+Epoch 2
+Epoch 3
+Epoch 4
+Epoch 5
+Epoch 6
+Epoch 7
+Epoch 8
+Epoch 9
+Epoch 10
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 10
+Total Cost: 41701.4888373
+Training Accuracy: 0.888421208093
+Validation Accuracy: 0.811719959166
+-----------------------
+Epoch 11
+Epoch 12
+Epoch 13
+Epoch 14
+Epoch 15
+Epoch 16
+Epoch 17
+Epoch 18
+Epoch 19
+Epoch 20
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 20
+Total Cost: 14752.8760977
+Training Accuracy: 0.967951558115
+Validation Accuracy: 0.849820528864
+-----------------------
+Epoch 21
+Epoch 22
+Epoch 23
+Epoch 24
+Epoch 25
+Epoch 26
+Epoch 27
+Epoch 28
+Epoch 29
+Epoch 30
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 30
+Total Cost: 5967.8740405
+Training Accuracy: 0.99151610627
+Validation Accuracy: 0.864952086146
+-----------------------
+Epoch 31
+Epoch 32
+Epoch 33
+Epoch 34
+Epoch 35
+Epoch 36
+Epoch 37
+Epoch 38
+Epoch 39
+Epoch 40
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 40
+Total Cost: 4310.11937314
+Training Accuracy: 0.993846305322
+Validation Accuracy: 0.865594230579
+-----------------------
+Epoch 41
+Epoch 42
+Epoch 43
+Epoch 44
+Epoch 45
+Epoch 46
+Epoch 47
+Epoch 48
+Epoch 49
+Epoch 50
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 50
+Total Cost: 2987.46207575
+Training Accuracy: 0.995388831454
+Validation Accuracy: 0.86665623868
+-----------------------
+Epoch 51
+Epoch 52
+Epoch 53
+Epoch 54
+Epoch 55
+Epoch 56
+Epoch 57
+Epoch 58
+Epoch 59
+Epoch 60
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 60
+Total Cost: 3102.86907748
+Training Accuracy: 0.996611365464
+Validation Accuracy: 0.867512431258
+-----------------------
+Epoch 61
+Epoch 62
+Epoch 63
+Epoch 64
+Epoch 65
+Epoch 66
+Epoch 67
+Epoch 68
+Epoch 69
+Epoch 70
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 70
+Total Cost: 3069.66829811
+Training Accuracy: 0.997456472866
+Validation Accuracy: 0.868006388514
+-----------------------
+Epoch 71
+Epoch 72
+Epoch 73
+Epoch 74
+Epoch 75
+Epoch 76
+Epoch 77
+Epoch 78
+Epoch 79
+Epoch 80
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 80
+Total Cost: 2967.28753015
+Training Accuracy: 0.996832898472
+Validation Accuracy: 0.86577534824
+-----------------------
+Epoch 81
+Epoch 82
+Epoch 83
+Epoch 84
+Epoch 85
+Epoch 86
+Epoch 87
+Epoch 88
+Epoch 89
+Epoch 90
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 90
+Total Cost: 2841.90268791
+Training Accuracy: 0.996873923103
+Validation Accuracy: 0.866845588962
+-----------------------
+Epoch 91
+Epoch 92
+Epoch 93
+Epoch 94
+Epoch 95
+Epoch 96
+Epoch 97
+Epoch 98
+Epoch 99
+Epoch 100
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 100
+Total Cost: 3012.61758033
+Training Accuracy: 0.996980587145
+Validation Accuracy: 0.867323080976
+-----------------------
+Epoch 101
+Epoch 102
+Epoch 103
+Epoch 104
+Epoch 105
+Epoch 106
+Epoch 107
+Epoch 108
+Epoch 109
+Epoch 110
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 110
+Total Cost: 2808.58544916
+Training Accuracy: 0.997029816702
+Validation Accuracy: 0.866763262752
+-----------------------
+Epoch 111
+Epoch 112
+Epoch 113
+Epoch 114
+Epoch 115
+Epoch 116
+Epoch 117
+Epoch 118
+Epoch 119
+Epoch 120
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 120
+Total Cost: 3300.94511536
+Training Accuracy: 0.997292374342
+Validation Accuracy: 0.866787960615
+-----------------------
+Epoch 121
+Epoch 122
+Epoch 123
+Epoch 124
+Epoch 125
+Epoch 126
+Epoch 127
+Epoch 128
+Epoch 129
+Epoch 130
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 130
+Total Cost: 3068.63079136
+Training Accuracy: 0.996808283694
+Validation Accuracy: 0.86700200876
+-----------------------
+Epoch 131
+Epoch 132
+Epoch 133
+Epoch 134
+Epoch 135
+Epoch 136
+Epoch 137
+Epoch 138
+Epoch 139
+Epoch 140
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 140
+Total Cost: 3236.19375662
+Training Accuracy: 0.998088252187
+Validation Accuracy: 0.867059637106
+-----------------------
+Epoch 141
+Epoch 142
+Epoch 143
+Epoch 144
+Epoch 145
+Epoch 146
+Epoch 147
+Epoch 148
+Epoch 149
+Epoch 150
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 150
+Total Cost: 2601.35295859
+Training Accuracy: 0.997554931981
+Validation Accuracy: 0.868483880528
+-----------------------
+Epoch 151
+Epoch 152
+Epoch 153
+Epoch 154
+Epoch 155
+Epoch 156
+Epoch 157
+Epoch 158
+Epoch 159
+Epoch 160
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 160
+Total Cost: 2526.47367103
+Training Accuracy: 0.997595956612
+Validation Accuracy: 0.867323080976
+-----------------------
+Epoch 161
+Epoch 162
+Epoch 163
+Epoch 164
+Epoch 165
+Epoch 166
+Epoch 167
+Epoch 168
+Epoch 169
+Epoch 170
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 170
+Total Cost: 2666.11295965
+Training Accuracy: 0.996873923103
+Validation Accuracy: 0.866672703922
+-----------------------
+Epoch 171
+Epoch 172
+Epoch 173
+Epoch 174
+Epoch 175
+Epoch 176
+Epoch 177
+Epoch 178
+Epoch 179
+Epoch 180
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 180
+Total Cost: 2911.83537
+Training Accuracy: 0.995462675791
+Validation Accuracy: 0.864507524616
+-----------------------
+Epoch 181
+Epoch 182
+Epoch 183
+Epoch 184
+Epoch 185
+Epoch 186
+Epoch 187
+Epoch 188
+Epoch 189
+Epoch 190
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 190
+Total Cost: 3083.47457111
+Training Accuracy: 0.997883129031
+Validation Accuracy: 0.86753712912
+-----------------------
+Epoch 191
+Epoch 192
+Epoch 193
+Epoch 194
+Epoch 195
+Epoch 196
+Epoch 197
+Epoch 198
+Epoch 199
+Epoch 200
+validation
+predicting training full dataset...
+predicting validation full dataset...
+finished predictions.
+-----------------------
+Epoch 200
+Total Cost: 2839.76959388
+Training Accuracy: 0.997743645285
+Validation Accuracy: 0.867479500774
+-----------------------
+Accuracy for ../data/personalized-dialog-dataset/split-by-profile/male_young: 88.23010%
+Accuracy for ../data/personalized-dialog-dataset/split-by-profile/male_middle-aged: 86.32415%
+Accuracy for ../data/personalized-dialog-dataset/split-by-profile/male_elderly: 86.47070%
+Accuracy for ../data/personalized-dialog-dataset/split-by-profile/female_young: 86.86839%
+Accuracy for ../data/personalized-dialog-dataset/split-by-profile/female_elderly: 86.17261%
+Accuracy for ../data/personalized-dialog-dataset/split-by-profile/female_middle-aged: 86.14013%
