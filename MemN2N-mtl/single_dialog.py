@@ -346,7 +346,7 @@ if __name__ =='__main__':
 
         elif FLAGS.experiment == 'split-by-profile':
             test_dirs = glob.glob('../data/personalized-dialog-dataset/split-by-profile/*')
-            test_dirs = list(test_dirs)
+            test_dirs = [f for f in test_dirs if os.path.isdir(f)]
 
             run_experiment('experiments/split_by_profile',
                            test_dirs,
