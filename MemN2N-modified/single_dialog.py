@@ -11,6 +11,7 @@ import tensorflow as tf
 import numpy as np
 import os
 import pickle
+import glob
 
 tf.flags.DEFINE_float("learning_rate", 0.001, "Learning rate for Adam Optimizer.")
 tf.flags.DEFINE_float("epsilon", 1e-8, "Epsilon value for Adam Optimizer.")
@@ -30,6 +31,7 @@ tf.flags.DEFINE_boolean('interactive', False, 'if True, interactive')
 tf.flags.DEFINE_boolean('OOV', False, 'if True, use OOV test set')
 tf.flags.DEFINE_boolean('save_vocab', False, 'if True, saves vocabulary')
 tf.flags.DEFINE_boolean('load_vocab', False, 'if True, loads vocabulary instead of building it')
+tf.flags.DEFINE_string('experiment', '', 'Experiment name')
 FLAGS = tf.flags.FLAGS
 print("Started Task:", FLAGS.task_id)
 
@@ -230,17 +232,62 @@ class chatBot(object):
             preds += list(pred)
         return preds
 
+    def test_ds(self, dataset_dir):
+        _, _, testData = load_dialog_task(dataset_dir, self.task_id, self.candid2indx, self.OOV)
+        testP, testS, testQ, testA = vectorize_data(testData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size)
+        n_test = len(testS)
+        test_preds = self.batch_predict(testP, testS, testQ, n_test)
+        test_acc = metrics.accuracy_score(test_preds, testA)
+
+        print('{}: {:.2%}'.format(dataset_dir, test_acc))
+
     def close_session(self):
         self.sess.close()
 
 if __name__ =='__main__':
-    model_dir="task"+str(FLAGS.task_id)+"_"+FLAGS.model_dir
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
-    chatbot=chatBot(FLAGS.data_dir,model_dir,FLAGS.task_id,OOV=FLAGS.OOV,isInteractive=FLAGS.interactive,batch_size=FLAGS.batch_size,memory_size=FLAGS.memory_size,epochs=FLAGS.epochs,hops=FLAGS.hops,save_vocab=FLAGS.save_vocab,load_vocab=FLAGS.load_vocab,learning_rate=FLAGS.learning_rate,embedding_size=FLAGS.embedding_size)
-    # chatbot.run()
-    if FLAGS.train:
-        chatbot.train()
+    if FLAGS.experiment == 'split-by-profile':
+        print('Running experiment:', FLAGS.experiment)
+        model_dir = 'experiment_split-by-profile/'
+        os.makedirs(model_dir, exist_ok=True)
+
+        #train_dir = '../data/personalized-dialog-dataset/merged-from-split-by-profile/'
+        train_dir = '../data/personalized-dialog-dataset/small/'
+        chatbot = chatBot(
+            train_dir,
+            model_dir,
+            5,
+            #epochs=200,
+            epochs=1,
+            OOV=False,
+            isInteractive=False,
+            batch_size=FLAGS.batch_size,
+            memory_size=FLAGS.memory_size,
+            save_vocab=False,
+            load_vocab=False
+        )
+
+        ckpt = tf.train.get_checkpoint_state(model_dir)
+        if ckpt and ckpt.model_checkpoint_path:
+            print('Load from:', model_dir)
+            chatbot.saver.restore(chatbot.sess, ckpt.model_checkpoint_path)
+        else:
+            print('Train the model on:', train_dir)
+            chatbot.train()
+
+        test_dirs = [d for d in glob.glob('../data/personalized-dialog-dataset/split-by-profile/*') if os.path.isdir(d)]
+        print('Start testings...')
+        for d in test_dirs:
+            chatbot.test_ds(d)
+
     else:
-        chatbot.test()
+        model_dir="task"+str(FLAGS.task_id)+"_"+FLAGS.model_dir
+        if not os.path.exists(model_dir):
+            os.makedirs(model_dir)
+        chatbot=chatBot(FLAGS.data_dir,model_dir,FLAGS.task_id,OOV=FLAGS.OOV,isInteractive=FLAGS.interactive,batch_size=FLAGS.batch_size,memory_size=FLAGS.memory_size,epochs=FLAGS.epochs,hops=FLAGS.hops,save_vocab=FLAGS.save_vocab,load_vocab=FLAGS.load_vocab,learning_rate=FLAGS.learning_rate,embedding_size=FLAGS.embedding_size)
+        # chatbot.run()
+        if FLAGS.train:
+            chatbot.train()
+        else:
+            chatbot.test()
+
     chatbot.close_session()
