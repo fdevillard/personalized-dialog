@@ -1,7 +1,7 @@
 #!/bin/bash
 
 read_path='../data/personalized-dialog-dataset/split-by-profile/'
-output_path='../data/personalized-dialog-dataset/merged-from-split-by-profile2/'
+output_path='../data/personalized-dialog-dataset/merged-from-split-by-profile/'
 type_files_to_copy='dev trn tst-OOV tst'
 base_file_name='personalized-dialog-task5-full-dialogs'
 extension='txt'
