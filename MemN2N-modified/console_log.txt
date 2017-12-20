@@ -1,0 +1,186 @@
+Script started on Tue Dec 19 13:30:30 2017
+(optsemproj) florents-macbook-pro:MemN2N-modified flo$ python single_dialog.py --experiment split-by-profile
+/Users/flo/anaconda3/envs/optsemproj/lib/python3.6/importlib/_bootstrap.py:219: RuntimeWarning: compiletime version 3.5 of module 'tensorflow.python.framework.fast_tensor_util' does not match runtime version 3.6
+  return f(*args, **kwds)
+2017-12-19 13:30:48.085393: I tensorflow/core/platform/cpu_feature_guard.cc:137] Your CPU supports instructions that this TensorFlow binary was not compiled to use: SSE4.1 SSE4.2 AVX AVX2 FMA
+Started Task: 1
+Running experiment: split-by-profile
+/Users/flo/anaconda3/envs/optsemproj/lib/python3.6/re.py:212: FutureWarning: split() requires a non-empty pattern match.
+  return _compile(pattern, flags).split(string, maxsplit)
+Candidate Size 43863
+vocab size: 14820
+Longest sentence length 19
+Longest candidate sentence length 13
+Longest story length 222
+Average story length 61
+Train the model on: ../data/personalized-dialog-dataset/merged-from-split-by-profile/
+Training Size 121878
+Validation Size 121468
+Epoch 1
+Epoch 2
+Epoch 3
+Epoch 4
+Epoch 5
+Epoch 6
+Epoch 7
+Epoch 8
+Epoch 9
+Epoch 10
+-----------------------
+Epoch 10
+Total Cost: 68073.9936736
+Training Accuracy: 0.867416596925
+Validation Accuracy: 0.820701748609
+-----------------------
+Epoch 11
+Epoch 12
+Epoch 13
+Epoch 14
+Epoch 15
+Epoch 16
+Epoch 17
+Epoch 18
+Epoch 19
+Epoch 20
+-----------------------
+Epoch 20
+Total Cost: 42626.7128532
+Training Accuracy: 0.931308357538
+Validation Accuracy: 0.881894820035
+-----------------------
+Epoch 21
+Epoch 22
+Epoch 23
+Epoch 24
+Epoch 25
+Epoch 26
+Epoch 27
+Epoch 28
+Epoch 29
+Epoch 30
+-----------------------
+Epoch 30
+Total Cost: 39013.504262
+Training Accuracy: 0.942401417811
+Validation Accuracy: 0.890958935687
+-----------------------
+Epoch 31
+Epoch 32
+Epoch 33
+Epoch 34
+Epoch 35
+Epoch 36
+Epoch 37
+Epoch 38
+Epoch 39
+Epoch 40
+-----------------------
+Epoch 40
+Total Cost: 36507.512423
+Training Accuracy: 0.947923333169
+Validation Accuracy: 0.895486877202
+-----------------------
+Epoch 41
+Epoch 42
+Epoch 43
+Epoch 44
+Epoch 45
+Epoch 46
+Epoch 47
+Epoch 48
+Epoch 49
+Epoch 50
+-----------------------
+Epoch 50
+Total Cost: 35406.4867995
+Training Accuracy: 0.952001181509
+Validation Accuracy: 0.89555273817
+-----------------------
+Epoch 51
+Epoch 52
+Epoch 53
+Epoch 54
+Epoch 55
+Epoch 56
+Epoch 57
+Epoch 58
+Epoch 59
+Epoch 60
+-----------------------
+Epoch 60
+Total Cost: 34200.1251259
+Training Accuracy: 0.953510887937
+Validation Accuracy: 0.896861724899
+-----------------------
+Epoch 61
+Epoch 62
+Epoch 63
+Epoch 64
+Epoch 65
+Epoch 66
+Epoch 67
+Epoch 68
+Epoch 69
+Epoch 70
+-----------------------
+Epoch 70
+Total Cost: 33250.7425347
+Training Accuracy: 0.953272945076
+Validation Accuracy: 0.893947377087
+-----------------------
+Epoch 71
+Epoch 72
+Epoch 73
+Epoch 74
+Epoch 75
+Epoch 76
+Epoch 77
+Epoch 78
+Epoch 79
+Epoch 80
+-----------------------
+Epoch 80
+Total Cost: 32549.3085235
+Training Accuracy: 0.950803262279
+Validation Accuracy: 0.891617545362
+-----------------------
+Epoch 81
+Epoch 82
+Epoch 83
+Epoch 84
+Epoch 85
+Epoch 86
+Epoch 87
+Epoch 88
+Epoch 89
+Epoch 90
+-----------------------
+Epoch 90
+Total Cost: 33306.3278357
+Training Accuracy: 0.951574525345
+Validation Accuracy: 0.893058254026
+-----------------------
+Epoch 91
+Epoch 92
+Epoch 93
+Epoch 94
+Epoch 95
+Epoch 96
+Epoch 97
+Epoch 98
+Epoch 99
+Epoch 100
+-----------------------
+Epoch 100
+Total Cost: 33266.0413902
+Training Accuracy: 0.954774446578
+Validation Accuracy: 0.894359008134
+-----------------------
+Start testings...
+../data/personalized-dialog-dataset/split-by-profile/female_elderly: 89.77%
+../data/personalized-dialog-dataset/split-by-profile/female_middle-aged: 89.18%
+../data/personalized-dialog-dataset/split-by-profile/female_young: 88.82%
+../data/personalized-dialog-dataset/split-by-profile/male_elderly: 89.51%
+../data/personalized-dialog-dataset/split-by-profile/male_middle-aged: 89.83%
+../data/personalized-dialog-dataset/split-by-profile/male_young: 89.15%
+(optsemproj) florents-macbook-pro:MemN2N-modified flo$ 
