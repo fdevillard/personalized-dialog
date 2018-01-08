@@ -135,8 +135,13 @@ class MemN2NDialog(object):
         
         
         # cross entropy
-        logits = self._inference(self._profile, self._stories, self._queries) # (batch_size, candidates_size)
-        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=self._answers, name="cross_entropy")
+        predictions = self._inference(self._profile, self._stories, self._queries) # (batch_size, candidates_size)
+        print("Predictions' shape:",predictions.shape)
+        print("Answers's shape:", self._answers.shape)
+        #cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=predictions, labels=self._answers, name="cross_entropy")
+        inverse_log_preds = -tf.log(predictions)
+        print("inverse_log_preds's shape:", inverse_log_preds.shape)
+        cross_entropy = tf.reduce_mean(tf.gather(params=inverse_log_preds, indices=self._answers, axis=1), reduction_indices=[1])
         cross_entropy_sum = tf.reduce_sum(cross_entropy, name="cross_entropy_sum")
 
         # loss op
@@ -165,8 +170,9 @@ class MemN2NDialog(object):
         train_op = self._opt.apply_gradients(nil_grads_and_vars, name="train_op")
 
         # predict ops
-        predict_op = tf.argmax(logits, 1, name="predict_op")
-        predict_proba_op = tf.nn.softmax(logits, name="predict_proba_op")
+        predict_op = tf.argmax(predictions, 1, name="predict_op")
+        #predict_proba_op = tf.nn.softmax(predictions, name="predict_proba_op")
+        predict_proba_op = predictions
         predict_log_proba_op = tf.log(predict_proba_op, name="predict_log_proba_op")
 
         # assign ops
@@ -269,7 +275,7 @@ class MemN2NDialog(object):
             candidates_emb = tf.nn.embedding_lookup(W, self._candidates)
             candidates_emb_sum = tf.reduce_sum(candidates_emb, 1)
 
-            return tf.matmul(u_k, tf.transpose(candidates_emb_sum))
+            return tf.nn.softmax(tf.matmul(u_k, tf.transpose(candidates_emb_sum)))
 
         def construct_model_for_profile(p):
             p_vars = self.get_variables_for_profile(p)
