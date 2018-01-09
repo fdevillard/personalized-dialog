@@ -333,7 +333,7 @@ if __name__ =='__main__':
                            ['../data/personalized-dialog-dataset/split-by-profile/female_elderly'],
                            data_dir='../data/personalized-dialog-dataset/small',
                            task_id=5,
-                           epochs=1)
+                           epochs=3)
         elif FLAGS.experiment == "full_profile":
             test_dirs = glob.glob('../data/personalized-dialog-dataset/split-by-profile/*')
             test_dirs = list(test_dirs)
