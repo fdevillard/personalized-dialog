@@ -282,7 +282,7 @@ class MemN2NDialog(object):
             candidates_emb = tf.nn.embedding_lookup(W, self._candidates)
             candidates_emb_sum = tf.reduce_sum(candidates_emb, 1)
 
-            return tf.softmax(tf.matmul(u_k, tf.transpose(candidates_emb_sum)))
+            return tf.nn.softmax(tf.matmul(u_k, tf.transpose(candidates_emb_sum)))
 
         def construct_model_for_profile(p):
             p_vars = self.get_variables_for_profile(p)
