@@ -135,8 +135,13 @@ class MemN2NDialog(object):
         
         
         # cross entropy
-        logits = self._inference(self._profile, self._stories, self._queries) # (batch_size, candidates_size)
-        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=self._answers, name="cross_entropy")
+        predictions = tf.nn.softmax(self._inference(self._profile, self._stories, self._queries)) # (batch_size, candidates_size)
+        print("Predictions' shape:",predictions.shape)
+        print("Answers's shape:", self._answers.shape)
+        #cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=predictions, labels=self._answers, name="cross_entropy")
+        inverse_log_preds = -tf.log(predictions)
+        print("inverse_log_preds's shape:", inverse_log_preds.shape)
+        cross_entropy = tf.reduce_mean(tf.gather(params=inverse_log_preds, indices=self._answers, axis=1), reduction_indices=[1])
         cross_entropy_sum = tf.reduce_sum(cross_entropy, name="cross_entropy_sum")
 
         # loss op
