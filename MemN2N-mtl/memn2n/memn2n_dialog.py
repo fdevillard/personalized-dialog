@@ -170,8 +170,9 @@ class MemN2NDialog(object):
         train_op = self._opt.apply_gradients(nil_grads_and_vars, name="train_op")
 
         # predict ops
-        predict_op = tf.argmax(logits, 1, name="predict_op")
-        predict_proba_op = tf.nn.softmax(logits, name="predict_proba_op")
+        predict_op = tf.argmax(predictions, 1, name="predict_op")
+        #predict_proba_op = tf.nn.softmax(logits, name="predict_proba_op")
+        predict_proba_op = predictions
         predict_log_proba_op = tf.log(predict_proba_op, name="predict_log_proba_op")
 
         # assign ops
