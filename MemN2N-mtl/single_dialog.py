@@ -354,6 +354,17 @@ if __name__ =='__main__':
                            task_id=5,
                            epochs=200)
 
+        elif FLAGS.experiment == 'reproduce-vanilla':
+            test_dirs = glob.glob('../data/personalized-dialog-dataset/split-by-profile/*')
+            test_dirs = [f for f in test_dirs if os.path.isdir(f)]
+
+            run_experiment('experiments/split_by_profile',
+                           test_dirs,
+                           data_dir='../data/personalized-dialog-dataset/merged-from-split-by-profile',
+                           task_id=5,
+                           epochs=200,
+                           alpha=0)
+
         else:
             chatbot=ChatBot(FLAGS.data_dir,
                             model_dir,
