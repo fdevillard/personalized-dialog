@@ -312,14 +312,7 @@ class MemN2NDialog(object):
 
             spec_result = tf.case(clean_case, default=default_constructor, exclusive=True, name='dispatching_profile')
 
-            if self._alpha == 0:
-                return shared_result
-            elif self._alpha == 1:
-                return spec_result
-            else:
-                specific_scaled = tf.scalar_mul(self._alpha, spec_result)
-                shared_scaled = tf.scalar_mul(1-self._alpha, shared_result)
-                return tf.add(specific_scaled, shared_scaled)
+            return tf.add(spec_result, shared_result)
 
     @staticmethod
     def _dispatch_arguments_for_profiles(f, batch_size, profiles, stories, *args):
