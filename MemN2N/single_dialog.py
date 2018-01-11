@@ -241,7 +241,7 @@ if __name__ =='__main__':
         model_dir = 'experiment_split-by-profile/'
         os.makedirs(model_dir, exist_ok=True)
 
-        train_dir = '../data/personalized-dialog-dataset/merged-from-split-by-profile/'
+        train_dir = '../data/personalized-dialog-dataset/merged-from-split-by-profile-shuffled/'
         chatbot = chatBot(
             train_dir,
             model_dir,
