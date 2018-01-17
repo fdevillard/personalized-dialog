@@ -1,29 +1,10 @@
 dependencies:
-- appnope=0.1.0=py36hf537a9a_0
-- asn1crypto=0.22.0=py36hb705621_1
-- ca-certificates=2017.08.26=ha1e5d58_0
-- certifi=2017.7.27.1=py36hd973bb6_0
-- cffi=1.10.0=py36h880867e_1
-- chardet=3.0.4=py36h96c241c_1
-- cryptography=2.0.3=py36h22d4226_1
-- decorator=4.1.2=py36h69a1b52_0
-- idna=2.6=py36h8628d0a_1
-- intel-openmp=2018.0.0=hdd0ccc9_7
+- ipykernel=4.7.0=py36h2f9c1c0_0
 - ipython=6.1.0=py36hf612aae_1
 - ipython_genutils=0.2.0=py36h241746c_0
-- jedi=0.10.2=py36h6325097_0
-- libcxx=4.0.1=h579ed51_0
-- libcxxabi=4.0.1=hebd6815_0
-- libedit=3.1=hb4e282d_0
-- libffi=3.2.1=hd939716_3
-- libgfortran=3.0.1=h93005f0_2
-- mkl=2018.0.0=hc285769_4
-- ncurses=6.0=ha932d30_1
+- ipywidgets=7.0.5=py36h5142716_0
 - numpy=1.13.3=py36h2cdce51_0
-- openssl=1.0.2l=h57f3a61_2
 - pandas=0.21.0=py36hfed917e_1
-- pexpect=4.2.1=py36h3eac828_0
-- pickleshare=0.7.4=py36hf512f8e_0
 - pip=9.0.1=py36hbd95645_3
 - prompt_toolkit=1.0.15=py36haeda067_0
 - ptyprocess=0.5.2=py36he6521c3_0
@@ -34,6 +15,8 @@ dependencies:
 - python=3.6.3=h6804ab2_0
 - python-dateutil=2.6.1=py36h86d2abb_1
 - pytz=2017.2=py36h2e7dfbc_1
+- pyyaml=3.12=py36h2ba1e63_1
+- pyzmq=16.0.3=py36he48b5ad_0
 - readline=7.0=h81b24a6_3
 - requests=2.18.4=py36h4516966_1
 - scikit-learn=0.19.0=py36h4cafacf_2
@@ -42,16 +25,29 @@ dependencies:
 - simplegeneric=0.8.1=py36he5b5b09_0
 - six=1.10.0=py36h1d5bd22_1
 - sqlite=3.20.1=h900c3b0_1
+- terminado=0.6=py36h656782e_0
+- testpath=0.3.1=py36h625a49b_0
 - tk=8.6.7=hcdce994_1
+- tornado=4.5.2=py36h468dda9_0
 - tqdm=4.15.0=py36_0
 - traitlets=4.3.2=py36h65bd3ce_0
 - urllib3=1.22=py36h68b9469_0
 - wcwidth=0.1.7=py36h8c6ec74_0
+- webencodings=0.5.1=py36h3b9701d_1
 - wheel=0.29.0=py36h3597b6d_1
+- widgetsnbextension=3.0.8=py36h34759f8_0
 - xz=5.2.3=ha24016e_1
+- yaml=0.1.7=hc338f04_2
+- zeromq=4.2.2=ha360ad0_2
 - zlib=1.2.11=h60db283_1
 - pip:
+  - enum34==1.1.6
   - ipython-genutils==0.2.0
+  - jupyter-client==5.1.0
+  - jupyter-core==4.4.0
+  - markdown==2.6.10
   - prompt-toolkit==1.0.15
-  - protobuf==3.4.0
-  - tensorflow==0.12.1
+  - protobuf==3.5.0.post1
+  - tensorflow==1.4.1
+  - tensorflow-tensorboard==0.4.0rc3
+  - werkzeug==0.13

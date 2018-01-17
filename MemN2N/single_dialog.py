@@ -222,7 +222,7 @@ class chatBot(object):
         return preds
 
     def test_ds(self, dataset_dir):
-        _, _, testData = load_dialog_task(dataset_dir, self.task_id, self.candid2indx, self.OOV)
+        _, testData, _ = load_dialog_task(dataset_dir, self.task_id, self.candid2indx, self.OOV)
         testS, testQ, testA = vectorize_data(testData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size)
         n_test = len(testS)
         test_preds = self.batch_predict(testS, testQ, n_test)

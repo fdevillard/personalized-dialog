@@ -256,6 +256,12 @@ class IdenticalWordIdx:
         return item
 
 class OnetimeCandidateDict:
+    """
+    Class for generating a mapping on the flow.
+
+    Basically, if a key is not present in the dict, then it's value is
+    set to a unused index. Otherwise, the index already created is returned.
+    """
     def __init__(self):
         self.candidat_dict = dict()
 
@@ -272,6 +278,7 @@ class OnetimeCandidateDict:
         return value
 
 def compute_data_size(dirpath, task_id=5, oov=False):
+    """Helper function to compute the number of observations in the dataset"""
     data = load_dialog_task(dirpath, task_id, OnetimeCandidateDict(), oov)
     #vectorized_p = map(lambda d: vectorize_data(d, IdenticalWordIdx(), 100, 32, -1, 20, OnetimeCandidateDict())[0], data)
 

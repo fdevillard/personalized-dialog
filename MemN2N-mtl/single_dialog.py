@@ -42,6 +42,10 @@ print("Started Task:", FLAGS.task_id)
 
 
 class ChatBot(object):
+    """
+    Handle a chatbot session in sense of data, training and testing. Can be seen as a
+    helper class for the main function.
+    """
     def __init__(self,
                  data_dir,
                  model_dir,
@@ -138,6 +142,13 @@ class ChatBot(object):
         self.summary_writer = tf.summary.FileWriter(self.model.root_dir, self.model.graph_output.graph)
         
     def build_vocab(self,data,candidates,save=False,load_file=None):
+        """
+        Construction of a vocabulary based on all possible words in `data`. A side-effect only method.
+        :param data: Typically, the concatenation of the training, testing, and validation dataset
+        :param candidates: Possible bot's answers
+        :param save: Name of the file to construct (or anything evaluated to `False` would not trigger the saving)
+        :param load_file:  Name of the file to load (or `False` if force the construction of the vocabulary
+        """
         if load_file:
             with open(load_file, 'rb') as vocab_file:
                 vocab = pickle.load(vocab_file)
@@ -169,6 +180,15 @@ class ChatBot(object):
                 pickle.dump(vocab, vocab_file)
         
     def train(self):
+        """
+        Training method for the chatbot. It is based on `self.trainData`, on side-effect values
+        from `build_vocab`, and potentially other class' attributes.
+
+        An epoch corresponds to one training on the whole dataset. If the current epoch's number
+        is divisible by `self.evaluation_interval` (or that we're at the last epoch), the training
+        and validating accuracies are computed, printed/stored. Furthermore, if the validation
+        accuracy is the best in comparison to the previous values, the model is serialized.
+        """
         trainP, trainS, trainQ, trainA = vectorize_data(self.trainData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size, self._profiles_mapping)
         valP, valS, valQ, valA = vectorize_data(self.valData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size, self._profiles_mapping)
         n_train = len(trainS)
@@ -225,6 +245,14 @@ class ChatBot(object):
 
     @classmethod
     def restore_model(cls, **kwargs):
+        """
+        Helper class method which tries to construct a chatbot instance and restore
+        the tensorflow's session. It can be used to recover a model from a previous
+        training session.
+
+        :param kwargs: Same arguments as `Chatbot.__init__`
+        :return: The successfully restored model (if not successful, a `ValueError` is raised)
+        """
         ckpt = tf.train.get_checkpoint_state(kwargs['model_dir'])
 
         if ckpt and ckpt.model_checkpoint_path:
@@ -236,6 +264,10 @@ class ChatBot(object):
         return created_cb
 
     def test(self):
+        """
+        Load a model from a previous training session and prints the accuracy for
+        the testing dataset.
+        """
         ckpt = tf.train.get_checkpoint_state(self.model_dir)
         if ckpt and ckpt.model_checkpoint_path:
             self.saver.restore(self.sess, ckpt.model_checkpoint_path)
@@ -256,6 +288,14 @@ class ChatBot(object):
             #     print(pred, self.indx2candid[pred])
 
     def test_accuracy(self, test_data_dir):
+        """
+        Compute and return the testing accuracy for the data directory given in argument.
+        It is a more general method than `Chatbot.test` as it can be used on different
+        datasets than the one given at initialisation.
+
+        :param test_data_dir: Directory's path where to find the testing dataset
+        :return: The accuracy score for the testing file
+        """
         _, testData, _ = load_dialog_task(test_data_dir, self.task_id, self.candid2indx, self.OOV)
         testP, testS, testQ, testA = vectorize_data(testData, self.word_idx, self.sentence_size, self.batch_size, self.n_cand, self.memory_size, self._profiles_mapping)
         test_preds = self.model.batch_predict(testP, testS, testQ)
@@ -264,12 +304,15 @@ class ChatBot(object):
         return test_acc
 
     def close_session(self):
+        """Helper function to close the owned attributes (i.e. the tensorflow's session)"""
         self.sess.close()
 
 
 def run_experiment(experiment_path, test_dirs, **kwargs):
     """
-    Helper function for running experiment.
+    Helper function for running experiment. The main purpose is to document
+    the experiment and to ensure that the information is clearly established.
+
 
     Args:
         - experiment_path: directory for the experiment (created if not exist)

@@ -190,7 +190,16 @@ class MemN2NDialog(object):
         self._answers = tf.placeholder(tf.int32, [None], name="answers")
 
     def _build_vars(self):
+        """
+        Build the model's variables.
+
+        Basically, there is one shared set of variables, and one set per profile.
+        """
         def build_var_helper():
+            """
+            Helper function to construct one set of tensorflow variables
+            :return: Dictionary with the newly created tensorflow variables
+            """
             nil_word_slot = tf.zeros([1, self._embedding_size])
             A = tf.concat([ nil_word_slot, self._init([self._vocab_size-1, self._embedding_size]) ], 0)
             A = tf.get_variable('A', initializer=A)
