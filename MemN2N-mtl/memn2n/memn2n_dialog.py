@@ -233,11 +233,13 @@ class MemN2NDialog(object):
 
     @staticmethod
     def get_variables():
+        """Helper function to retrieve model's variable. The correct scope has to be specified before."""
         variables_names = ["A", "H", "W"]
         return {k: tf.get_variable(k) for k in variables_names}
 
     @staticmethod
     def get_variables_for_profile(p):
+        """Helper function to retrieve profile-specific variables. Has to be in main variable scope before"""
         assert p is not None
 
         with tf.variable_scope(MemN2NDialog.MODEL_NAME_SPECIFIC, reuse=True):
@@ -245,7 +247,9 @@ class MemN2NDialog(object):
                 return MemN2NDialog.get_variables()
 
     def _inference(self, profile, stories, queries):
+        """Generate the model's graph"""
         def model_inference_helper(A, H, W):
+            """Helper function to construct a End-to-end memory network"""
             q_emb = tf.nn.embedding_lookup(A, queries)
             u_0 = tf.reduce_sum(q_emb, 1)
             u = [u_0]
