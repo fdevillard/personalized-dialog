@@ -6,6 +6,8 @@ The Personalized Dialog dataset can be downloaded using `build_data.py`. Alterna
 
 Each of the tasks can also be generated from the [bAbI Dialog tasks](https://research.fb.com/projects/babi/) using the files in the `scripts/` directory.
 
+The experiments might also require to run the script `scripts/merge_split_by_profile.sh` which will generate an aggregation of data from `split-by-profile`. This script has to be called once and even if downloaded using the PalAI framework.
+
 ## Dialog Format
 We provide two variants of the dataset- a full set with 6000/12000 dialogs each for training, development and testing; and a small set restricted to 1000 dialogs each for training, development and testing. We also include a second test set (with suffix -OOV.txt) that contains dialogs including entities not present in training and development sets.
 
@@ -35,7 +37,15 @@ Along with the train, dev and test sets, we also include a knowledge base file (
 In addition to the small and full datasets, we also provide a split-by-profile dataset where each directory contains 1000 dialogs each for training, development and testing for a specific user profile. This set can be used to analyze multi-task learning capabilities of models.
 
 ## Models
-We provide our implementations of two models- Memory Networks (`MemN2N/`) and Supervised Embeddings (`supervised-embedding/`). Each directory contains scripts, experimental logs and model checkpoints. Instructions on using a models are given in its README.
+We provide implementations for several models:
+
+- `supervised-embeddings`: the supervised embeddings as discussed in _Personalization in Goal-oriented Dialog_
+- `MemN2N`: the end-to-end memory network adapted to our dataset
+- `MemN2N-modified`: the end-to-end-memory network with a second memory where the profiles are stored
+- `MemN2N-mtl`: end-to-end memory network with two memory components, one trained on a per-profile basis, one shared among profiles
+- `MemN2N-mtl-more-softmax`: same as `MemN2N-mtl` except that the aggregation method is different here, and uses several softmax.
+ 
+Instructions on using a models are given in its README.
 
 ## License
 The dataset is released under Creative Commons Attribution 3.0 Unported license. A copy of this license is included with the data.
